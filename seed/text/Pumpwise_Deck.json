@@ -1,0 +1,50 @@
+{
+  "file": "Pumpwise_Deck.pdf",
+  "sha256": "79603014b0ecd10345aea65a13e18ba936980b59eee7edad6eb1d43f9eda4600",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "Pumpwise\nPredictive maintenance for small-factory motors and pumps\nPre-seed | Raising INR 2.2 Cr | Pune"
+    },
+    {
+      "page_no": 2,
+      "text": "A pump failure stops the whole line\nPumpwise 3\nBreakdowns halt\nproduction\nA failed pump at a small plant\nstops work for 1 to 3 days.\nMonitoring costs too\nmuch\nImported condition monitors\ncost INR 40,000+ per motor,\nwith annual contracts.\nChecks are by hand\nTechnicians do weekly rounds,\nso failures are found after\nthey happen.\nFrom visits to 38 plants in the Pune and Coimbatore clusters, Nov 2025 to Feb 2026."
+    },
+    {
+      "page_no": 3,
+      "text": "Why now\nPumpwise 4\nCheap sensors\nVibration and temperature\nchips now cost under INR\n1,200 a unit.\nCheap connectivity\nLow-power radios and Indian\nmobile data make remote\nmonitoring affordable.\nSmall-data models\nA model can learn a motor's\nnormal pattern in 2 weeks,\nwith no failure history."
+    },
+    {
+      "page_no": 4,
+      "text": "Clip on, learn, alert\nPumpwise 5\n1\nClip on\nFit a sensor on the motor in 10\nminutes. No wiring.\n2\nLearn\nThe model learns normal\nvibration and heat over 14 days.\n3\nAlert\nWhatsApp alert when behaviour\ndrifts, days before failure."
+    },
+    {
+      "page_no": 5,
+      "text": "Traction: 6 paying customers in 5 months\nPumpwise 6\nJun Jul Aug Sep Oct\n20\n48\n80\n112\n140\nPaid sensors deployed\n6 of 11\npilots converted to paid\n140\nsensors live\nINR 1.05 L\nmonthly recurring"
+    },
+    {
+      "page_no": 6,
+      "text": "Market size: how we got there\nPumpwise 7\nTAM INR 16,200 Cr ~300K manufacturing MSMEs with 20+ motors x 60 sensors x INR\n9,000 a year\nSAM INR 4,536 Cr ~84K firms in Maharashtra, Tamil Nadu and Gujarat clusters x 60 x\nINR 9,000\nSOM INR 21.6 Cr In 3 years: 400 customers x 60 sensors x INR 9,000\n300K is 12% of ~2.5M Udyam-registered manufacturing MSMEs, based on our plant visits. Subscription revenue only; hardware excluded."
+    },
+    {
+      "page_no": 7,
+      "text": "Go-to-market and acquisition cost\nPumpwise 8\nCluster associations\n3 of 6 paid customers\nPump distributors\n2 of 6 paid customers\nDirect outreach\n1 of 6 paid customers\nINR 73,000\ncost per paid customer\n55%\npilot to paid\n< 4 months\npayback on first-year gross profit\nCAC = cost of 11 pilots (INR 4.4 L) /\n6 paid customers. A pilot is 10 free\nsensors for 30 days."
+    },
+    {
+      "page_no": 8,
+      "text": "We earn on hardware and subscription\nPumpwise 9\nHardware\nINR 9,500 per sensor. Cost to us: INR 3,200.\nSubscription\nINR 750 per sensor a month at about 85% gross\nmargin.\nAverage customer: 23 sensors and INR 3.1 L first-year gross profit."
+    },
+    {
+      "page_no": 9,
+      "text": "How we are different\nPumpwise 10\nPumpwise Imported systems Manual rounds\nPrice per motor INR 9,500 + 750/mo INR 40,000+ Low\nSetup time 10 minutes Days None\nEarly warning Yes Yes No\nBuilt for small plants Yes No Yes"
+    },
+    {
+      "page_no": 10,
+      "text": "The team\nPumpwise 11\nKarthik Subramanian, CEO\nIIT Madras, mechanical. 5 years as a reliability\nengineer at an engine maker.\nNeeraj Pillai, CTO\n4 years in embedded systems at an auto-\ncomponents supplier. Designed the sensor and\nfirmware.\nTeam of 7. Sensors made by a contract manufacturer in Pune."
+    },
+    {
+      "page_no": 11,
+      "text": "The ask: INR 2.2 Cr\nPumpwise 12\n45%\nTeam: embedded, ML, field\n30%\nSensors and pilots\n25%\nCertification and operations\nIn 12 months: 30 paying customers, INR 12 L monthly recurring, pilot-to-paid at 65%."
+    }
+  ]
+}

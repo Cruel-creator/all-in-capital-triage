@@ -1,0 +1,7 @@
+{
+  "note": "USD per million tokens, from OpenRouter's public model list (openrouter.ai/api/v1/models), read 2026-11-20 via `pnpm check:keys --models`. Most specific match wins. Calls on an unpriced model are recorded with cost 0 and the error 'price not configured'.",
+  "models": {
+    "google/gemini-3.8-flash": { "match": "gemini-3.8-flash", "input_per_mtok": 0.825, "output_per_mtok": 4.125 },
+    "anthropic/claude-sonnet-5.5": { "match": "claude-sonnet-5.5", "input_per_mtok": 2.0, "output_per_mtok": 10.0 }
+  }
+}

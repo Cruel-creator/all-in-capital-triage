@@ -1,0 +1,14 @@
+{
+  "file": "Pumpwise_Form.pdf",
+  "sha256": "3d32ebe0654faaa753f0dcbb54afd4cb094ddf6b47593a4af33b58d0cfcfa732",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "ALL IN CAPITAL | INBOUND APPLICATION\nApplication Form Response\nSubmitted through the fund's public application form. Responses are reproduced as the applicant wrote them.\nCompany\nCompany name Pumpwise (Pumpwise Technologies Pvt. Ltd.)\nWebsite www.pumpwise.example\nLocation Pune, Maharashtra\nIncorporated October 2025\nOne-line description Plug-on vibration and heat sensors with anomaly alerts for motors and\npumps in small factories.\nSector (as selected) Deeptech\nStage (as selected) Pre-seed\nTeam size 7 (2 founders, 3 engineers, 2 field staff)\nFounders\nFounder 1 Karthik Subramanian, CEO. IIT Madras, mechanical engineering. 5 years\nas a reliability engineer at an engine maker. linkedin.com/in/karthik-\nsubramanian-example\nFounder 2 Neeraj Pillai, CTO. 4 years in embedded systems at an auto-components\nsupplier. Designed the sensor board and firmware.\nlinkedin.com/in/neeraj-pillai-example\nTime commitment Both full-time since October 2025.\nPrior startup experience None for either founder.\nEquity split Founders 80%, angels 12%, ESOP 8%.\nProduct and traction\nWhat have you built? A clip-on sensor measuring vibration and temperature, a gateway, and a\nmodel that learns each motor's normal pattern in 14 days. Alerts go to\nWhatsApp.\nCustomers 11 pilots started since March 2026. 6 converted to paid, across 140\nsensors (average 23 per customer).\nRevenue INR 14.2 L cumulative, of which hardware INR 13.3 L. Monthly recurring\nsubscription INR 1.05 L.\nCustomer acquisition 3 of 6 paid customers came through a cluster association, 2 through a\npump distributor, 1 direct. Cost per paid customer is about INR 73,000\n(11 pilots at INR 4.4 L / 6). This excludes founder time."
+    },
+    {
+      "page_no": 2,
+      "text": "Evidence of value Customers report 9 unplanned stoppages caught early during pilots,\nestimated by them at INR 1.8 L average downtime cost each. These\nfigures are customer-reported, not audited.\nKey risks Sensor accuracy across motor types, hardware supply, and longer sales\ncycles in larger plants.\nFundraising\nAmount raising INR 2.2 Cr\nValuation expectation INR 11 Cr post-money\nExisting investors INR 30 L: a INR 10 L incubator grant and two angels (INR 20 L).\nUse of funds Team, sensor inventory and pilots, certification and operations.\nOther investors in\nconversation\nTwo pre-seed funds.\nHow did you hear about us? Public application form. Our incubator mentor also suggested we apply.\nAnything else we should know?\nWe would value a conversation about manufacturing scale-up and calibration. Happy to share pilot data."
+    }
+  ]
+}

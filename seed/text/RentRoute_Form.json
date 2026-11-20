@@ -1,0 +1,14 @@
+{
+  "file": "RentRoute_Form.pdf",
+  "sha256": "b6513ef0bcc48dc089c5b5a3e022a128decfb0f7abd6586811255800b1332580",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "ALL IN CAPITAL | INBOUND APPLICATION\nApplication Form Response\nSubmitted through the fund's public application form. Responses are reproduced as the applicant wrote them.\nCompany\nCompany name RentRoute (RentRoute Technologies Pvt. Ltd.)\nWebsite www.rentroute.example\nLocation Bengaluru, Karnataka\nIncorporated May 2026\nOne-line description App to pay rent by credit card.\nSector (as selected) Fintech\nStage (as selected) Pre-seed\nTeam size 4 (2 founders, 2 contract developers)\nFounders\nFounder 1 Sameer Qureshi, CEO. Product manager at a fintech for 4 years;\nlaunched two payments features. linkedin.com/in/sameer-qureshi-\nexample\nFounder 2 Divya Menon, Growth. 5 years in consumer marketing.\nlinkedin.com/in/divya-menon-example\nTime commitment Sameer full-time since June 2026. Divya full-time since August 2026.\nPrior startup experience None.\nEquity split Founders 100%.\nProduct and traction\nWhat have you built? A mobile app that lets users pay rent by credit card. We pay the\nlandlord's bank account through a payment aggregator partner.\nUsers 1,900 registered. 1,100 have paid at least once.\nRent volume INR 6.1 Cr paid since July 2026 across 2,400 payments.\nRevenue Users pay a 1.8% fee: INR 11 L gross. After the 0.9% we pay the\npayment partner, net revenue is INR 5.5 L.\nCustomer acquisition Mostly organic and word of mouth. In small paid tests we saw about\nINR 120 per registered user. We have not measured cost per paying\nuser.\nDependencies We rely on a single payment aggregator partner. Banks and card\nnetworks have changed rules on rent payments before, and a change\nwould hit us directly."
+    },
+    {
+      "page_no": 2,
+      "text": "Fundraising\nAmount raising INR 1.8 Cr\nValuation expectation INR 12 Cr post-money\nExisting investors None. Founders have put in INR 18 L of savings.\nUse of funds Marketing, engineering, operations.\nOther investors in\nconversation\nNone.\nHow did you hear about us? Public application form.\nAnything else we should know?\nWe believe rent is a large, underserved payment category."
+    }
+  ]
+}

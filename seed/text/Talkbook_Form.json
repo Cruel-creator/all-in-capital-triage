@@ -1,0 +1,14 @@
+{
+  "file": "Talkbook_Form.pdf",
+  "sha256": "754d15f0b2971e8e978ad5c337f5092dd2f9744ea63a998e91cf15add54b54e7",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "ALL IN CAPITAL | INBOUND APPLICATION\nApplication Form Response\nSubmitted through the fund's public application form. Responses are reproduced as the applicant wrote them.\nCompany\nCompany name Talkbook (Talkbook AI Pvt. Ltd.)\nWebsite www.talkbook.example\nLocation Chennai, Tamil Nadu\nIncorporated February 2026\nOne-line description AI call summaries and automatic CRM updates for Indian sales teams,\nincluding code-mixed languages.\nSector (as selected) Consumer tech\nStage (as selected) Pre-seed\nTeam size 8\nFounders\nFounder 1 Arun Kumar, CEO. 6 years as a product lead at a CRM software company.\nlinkedin.com/in/arun-kumar-example\nFounder 2 Meenakshi S, CTO. 4 years in speech ML at a speech-technology\ncompany. linkedin.com/in/meenakshi-s-example\nTime commitment Both full-time since March 2026.\nPrior startup experience None.\nEquity split Founders 95%, ESOP 5%.\nProduct and traction\nWhat have you built? A call-recording and transcription layer for sales teams, with summaries\nand CRM field updates. Handles Hindi-English, Tamil-English and Telugu-\nEnglish calls.\nCustomers 16 paying teams, 340 paid seats.\nRevenue MRR INR 1.9 L (INR 500 per seat per month).\nUnit economics CAC about INR 48,000 per team, including founder time at a nominal\nsalary. Gross margin 70%. Payback about 5 months.\nCustomer acquisition Founder-led outbound brought 9 teams, referrals 5 and CRM\nconsultants 2.\nCompetition Gong and similar global tools, and meeting note-takers like Otter and\nFireflies. We do not know of an India-first player."
+    },
+    {
+      "page_no": 2,
+      "text": "Key risks Telecom call-recording restrictions, accuracy on noisy calls, and\ncustomer concentration in BFSI.\nFundraising\nAmount raising INR 2 Cr\nValuation expectation INR 12 Cr post-money\nExisting investors None.\nUse of funds Engineering and language models, sales, security and operations.\nOther investors in\nconversation\nOne pre-seed fund.\nHow did you hear about us? Public application form.\nAnything else we should know?\nWe would value introductions to sales leaders at Indian BFSI and edtech companies."
+    }
+  ]
+}

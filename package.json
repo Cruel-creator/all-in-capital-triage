@@ -1,0 +1,42 @@
+{
+  "name": "allin-triage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "All In Capital inbound triage: researched, cited, ranked applications with human decisions.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts tests/golden/*.test.ts",
+    "extract:pdfs": "tsx scripts/extract-pdfs.ts",
+    "seed": "tsx scripts/seed.ts",
+    "worker": "tsx scripts/worker.ts",
+    "extract": "tsx scripts/extract.ts",
+    "check:keys": "tsx scripts/check-keys.ts"
+  },
+  "dependencies": {
+    "@langfuse/otel": "^6.1.1",
+    "@langfuse/tracing": "^6.1.1",
+    "@opentelemetry/sdk-node": "^0.301.2",
+    "@supabase/supabase-js": "^2.117.3",
+    "clsx": "^2.1.1",
+    "motion": "^14.1.0",
+    "next": "^15.5.27",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
+    "unpdf": "^1.4.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "dotenv": "^18.0.7",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

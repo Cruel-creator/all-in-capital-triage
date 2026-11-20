@@ -1,0 +1,46 @@
+{
+  "file": "Talkbook_Deck.pdf",
+  "sha256": "8d7ece23c991e3c88d9b4fcee8a74ebdc5810158fcf47329a05ff102f653a18a",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "Talkbook\nAI call summaries and CRM updates for Indian sales teams\nPre-seed | Raising INR 2 Cr | Chennai"
+    },
+    {
+      "page_no": 2,
+      "text": "Sales calls disappear into thin air\nTalkbook 3\nReps hate CRM entry\nReps spend about 5 hours a\nweek on notes and CRM\nupdates.\nManagers cannot coach\nManagers hear about 3% of\ntheir team's calls.\nIndian languages break\ntools\nHindi-English and Tamil-\nEnglish calls are poorly\ntranscribed by global tools."
+    },
+    {
+      "page_no": 3,
+      "text": "Why now\nTalkbook 4\nBetter speech models\nCode-mixed speech can now\nbe transcribed far more\naccurately.\nCheaper inference\nCost per call minute has fallen\n8x in two years.\nSales teams scaling\nBFSI, edtech and real estate\nteams are hiring inside sales\nfast."
+    },
+    {
+      "page_no": 4,
+      "text": "Call, summarise, update\nTalkbook 5\n1\nCall\nReps call as usual from their\nphone or dialer.\n2\nSummarise\nTalkbook transcribes and\nsummarises in the rep's language.\n3\nUpdate\nFields in the CRM fill in\nautomatically."
+    },
+    {
+      "page_no": 5,
+      "text": "Traction: 16 paying teams in 4 months\nTalkbook 6\nJul Aug Sep Oct\n40\n85\n140\n210\nMonthly recurring revenue (INR thousand)\n16\npaying teams\n340\npaid seats\nINR 2.1 L\nmonthly recurring revenue"
+    },
+    {
+      "page_no": 6,
+      "text": "Market size: how we got there\nTalkbook 7\nTAM INR 4,200 Cr 7M sales reps in India x INR 6,000 per seat a year\nSAM INR 660 Cr 1.1M reps in inside-sales teams (BFSI, edtech, SaaS, real estate) x\nINR 6,000\nSOM INR 27 Cr In 3 years: 45,000 seats x INR 6,000\nRep counts from industry estimates. INR 6,000 a seat a year is our current price."
+    },
+    {
+      "page_no": 7,
+      "text": "Go-to-market and CAC\nTalkbook 8\nFounder-led outbound\n9 of 16 teams\nCustomer referrals\n5 of 16 teams\nCRM consultants\n2 of 16 teams\nINR 48,000\nCAC per team\n~5 months\npayback\n70%\ngross margin\nAverage team pays INR 13,000 a\nmonth. CAC counts founder time at\na nominal salary."
+    },
+    {
+      "page_no": 8,
+      "text": "How we are different\nTalkbook 9\nTalkbook Global call-AI tools Meeting note-takers\nHindi, Tamil, Telugu code-mixed Strong Weak Weak\nPrice per seat a month INR 500 INR 9,000+ INR 1,500\nAuto CRM update Yes Yes Limited\nBuilt for India Yes No No"
+    },
+    {
+      "page_no": 9,
+      "text": "The team\nTalkbook 10\nArun Kumar, CEO\n6 years as a product lead at a CRM software\ncompany.\nMeenakshi S, CTO\n4 years in speech ML at a speech-technology\ncompany.\nTeam of 8."
+    },
+    {
+      "page_no": 10,
+      "text": "The ask: INR 2 Cr\nTalkbook 11\n50%\nEngineering and language\nmodels\n30%\nSales\n20%\nSecurity and operations\nIn 12 months: 80 paying teams and INR 12 L monthly recurring revenue."
+    }
+  ]
+}

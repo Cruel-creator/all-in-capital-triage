@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "note": "Two views. 'revealed' is the default scoring view (from the memos). 'written' is the public thesis, used for the Written thesis fit badge. Riya's drift observation (Meeting 5) is the gap between them.",
+  "written": {
+    "lines": [
+      { "id": "W1", "text": "Pre-seed and seed, India, often the first institutional cheque.", "source_url": null, "source_note": "Fund II press coverage; URL to be confirmed by the portfolio research step", "verified": false },
+      { "id": "W2", "text": "Cheque size roughly $100K-$500K.", "source_url": null, "source_note": "Fund II press coverage; URL to be confirmed", "verified": false },
+      { "id": "W3", "text": "Fund II names fintech, deeptech and consumer tech.", "source_url": null, "source_note": "outlookbusiness.com Fund II article; URL to be confirmed", "verified": false },
+      { "id": "W4", "text": "Consumer brands are part of the mandate.", "source_url": null, "source_note": "Case brief (MESA_T2_Case 03): 'investing at pre-seed across fintech, deeptech, consumer tech, and consumer brands'", "verified": true },
+      { "id": "W5", "text": "Older press describes the fund as sector-agnostic.", "source_url": null, "source_note": "Older press; URL to be confirmed", "verified": false },
+      { "id": "W6", "text": "Founder-market fit framework: what changed to make this possible now; skills fit; earned secrets; proof they can build; team history; persistence.", "source_url": null, "source_note": "Inc42, 9 Mar 2023; URL to be confirmed", "verified": false },
+      { "id": "W7", "text": "Avoids later-stage rounds, overpriced entries and pedigree-only bets.", "source_url": null, "source_note": "Public interviews; URL to be confirmed", "verified": false }
+    ],
+    "sectors": {
+      "in": ["fintech", "deeptech", "consumer tech", "consumer brand"],
+      "stretch": ["b2b saas", "commerce infrastructure", "rural credit"],
+      "outside": ["healthcare", "web3", "crypto", "real estate"]
+    }
+  },
+  "revealed": {
+    "rules": [
+      { "id": "R1", "text": "The founder owns the hardest risk in the business.", "evidence": ["CampusCredit (pass) vs Jai Kisan (invest)", "AeroDrop (pass) vs ePlane (invest)"] },
+      { "id": "R2", "text": "Customer groundwork before product.", "evidence": ["Wint Wealth", "SuperK", "Jai Kisan", "Unbox Robotics"] },
+      { "id": "R3", "text": "Consumer brands are judged on cohort repeat and margin fluency.", "evidence": ["Giva (invest) vs Petalry (pass)"] },
+      { "id": "R4", "text": "A missing number lowers the score; it is never skipped.", "evidence": ["Meeting 1: Kushal on Petalry's 6.5"] },
+      { "id": "R5", "text": "The business must fit a pre-seed cheque's structure.", "evidence": ["HopBox: 'pass on structure, not people'"] },
+      { "id": "R6", "text": "No company whose existence depends on a favourable regulatory change.", "evidence": ["Coinlane"] },
+      { "id": "R7", "text": "Score evidence, not pedigree.", "evidence": ["Meeting 3: AeroDrop scored 7.5 on credentials"] },
+      { "id": "R8", "text": "A founder getting defensive on weak spots is information.", "evidence": ["Prepnest", "Meeting 1"] },
+      { "id": "R9", "text": "Founder behaviour beats the sector label.", "evidence": ["Jai Kisan", "Meeting 2"] }
+    ]
+  }
+}

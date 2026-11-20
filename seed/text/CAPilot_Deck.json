@@ -1,0 +1,42 @@
+{
+  "file": "CAPilot_Deck.pdf",
+  "sha256": "b8eafef6c1db9f265e741fa09064454f19f2bed799a501aaa343616a00e8793d",
+  "pages": [
+    {
+      "page_no": 1,
+      "text": "CAPilot\nAI assistant for CA firms: GST reconciliation and notice replies\nPre-seed | Raising INR 1.5 Cr | Ahmedabad"
+    },
+    {
+      "page_no": 2,
+      "text": "CA firms drown in compliance work\nCAPilot 3\nMatching is manual\nStaff spend about 40% of their time matching\nGST invoices.\nNotices pile up\nEach tax notice reply takes 3 to 5 hours to\ndraft."
+    },
+    {
+      "page_no": 3,
+      "text": "Upload, reconcile, draft\nCAPilot 4\n1\nUpload\nUpload books and GST portal\ndata.\n2\nReconcile\nAI matches invoices and flags\nmismatches.\n3\nDraft\nAI drafts the notice reply for\nthe CA to review."
+    },
+    {
+      "page_no": 4,
+      "text": "Traction: INR 9.4 L annual recurring revenue\nCAPilot 5\nAug Sep Oct\n18\n41\n78\nMonthly recurring revenue (INR thousand)\n31\npaying CA firms\nINR 9.4 L\nannual recurring revenue\n2\nfirms churned"
+    },
+    {
+      "page_no": 5,
+      "text": "The market\nCAPilot 6\nINR 1.4 lakh Cr\nIndian tax and compliance services\nmarket\nEven 1% of this market is a INR 1,400\nCr opportunity for CAPilot."
+    },
+    {
+      "page_no": 6,
+      "text": "How we make money\nCAPilot 7\nSubscription\nINR 2,500 to 6,000 a month per firm, based\non seats.\nNotice-reply credits\nINR 400 per drafted reply above the plan\nlimit."
+    },
+    {
+      "page_no": 7,
+      "text": "Competition\nCAPilot 8\nCAPilot Tally and Zoho ClearTax\nGST reconciliation Yes Basic Yes\nAI notice replies Yes No No\nBuilt for small CA firms Yes Yes Partial"
+    },
+    {
+      "page_no": 8,
+      "text": "The team\nCAPilot 9\nDhruv Shah, CEO\nQualified CA. 4 years in practice handling\nGST for 60 clients.\nIsha Merchant, CTO\n3 years at a SaaS company. Built the\nmatching engine."
+    },
+    {
+      "page_no": 9,
+      "text": "The ask: INR 1.5 Cr\nCAPilot 10\n50%\nEngineering and AI\n30%\nSales\n20%\nCompliance and security\nIn 12 months: 150 paying firms and INR 7 L monthly recurring revenue."
+    }
+  ]
+}

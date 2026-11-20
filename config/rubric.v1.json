@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "scale": [0, 10],
+  "note": "Initial rubric from the build prompt sections 5a-5c. Anchors cite the deal memos (Deal_Memos.pdf) and partner meeting notes.",
+  "gates": {
+    "G1": { "name": "Stage and cheque fit", "rule": "Pre-seed or seed, first institutional round, sensible valuation (roughly a $100K-$500K cheque).", "routes_to": "kushal" },
+    "G2": { "name": "Regulatory existence risk", "rule": "Existence depends on a favourable regulatory change, or a single rule change would hit the business directly (R6, Coinlane).", "routes_to": "kushal" },
+    "G3": { "name": "Portfolio conflict", "rule": "Semantic match of one-liner and product against every portfolio row. Always flag; a false alarm beats a miss (Meeting 4).", "routes_to": "kushal" },
+    "G4": { "name": "Integrity", "rule": "Deck and form contradict each other, credentials are inflated, or numbers do not reconcile. Ask for the numbers; never allege.", "routes_to": "kushal" }
+  },
+  "criteria": {
+    "C1": {
+      "name": "Founder-market fit",
+      "group": "founder",
+      "weight": 0.25,
+      "covers": "Earned secrets, skills fit, time spent on this problem.",
+      "anchors": {
+        "0": "Pedigree with no link to this problem or customer. Credentials are the whole case (Meeting 3: AeroDrop scored 7.5 on credentials; 'credentials are not a business').",
+        "3": "Relevant adjacent skill but no earned insight and a gap the founder does not see (Petalry: strong marketer, never owned a P&L, 'unaware of the gap').",
+        "5": "Skills fit the problem and some time spent on it; one or two specific insights, not yet tested in the field.",
+        "7": "Months in the field with customers, describes what they actually want in their words (SuperK: months in small-town stores; Wint: sat across the table from the customer first).",
+        "10": "Years on a hard problem; answers 'what would make you quit?' with a specific technical or commercial milestone (ePlane)."
+      }
+    },
+    "C2": {
+      "name": "Risk ownership",
+      "group": "founder",
+      "weight": 0.2,
+      "covers": "Credit, regulation, capital path, liability.",
+      "anchors": {
+        "0": "Says the hardest risk is someone else's problem (CampusCredit: defaults are 'something the NBFC partner handles').",
+        "3": "Acknowledges the risk with no plan (AeroDrop: regulation and liability 'solved once the tech works').",
+        "5": "Names the risk and a plausible mitigation.",
+        "7": "Owns the risk with a concrete milestone sequence (ePlane: long regulatory path, clear milestone sequence).",
+        "10": "Has already absorbed and managed the risk in the field (Jai Kisan: registered and assessed thousands of farmers before lending)."
+      }
+    },
+    "C3": {
+      "name": "Quality of customer pull",
+      "group": "market",
+      "weight": 0.2,
+      "covers": "Repeat, conversion, groundwork. Not raw size.",
+      "anchors": {
+        "0": "No paying or committed customer and no groundwork (AeroDrop: no signed customer).",
+        "3": "Top-line growth, downloads or followers with no retention data, or growth bought through paid channels (Prepnest: no 30/90-day numbers; Petalry: two thirds of orders from paid social, repeat not tracked).",
+        "5": "Paying customers and early repeat or conversion signals, partly from one channel or one town.",
+        "7": "Product in live use with measured conversion or cohort repeat (Unbox: live sites, pilots treated as learning; Giva: repeat by cohort).",
+        "10": "Customer groundwork before the product, plus measured repeat or conversion by cohort (Jai Kisan: thousands registered first; SuperK: dozens of stores visited)."
+      }
+    },
+    "C4": {
+      "name": "Fluency and honesty with the numbers",
+      "group": "founder",
+      "weight": 0.15,
+      "covers": "Cohorts, CAC by channel, figures that reconcile.",
+      "anchors": {
+        "0": "Key numbers contradict across deck and form, or credentials and metrics are inflated (G4 pattern).",
+        "3": "Answers with channel-level averages; the deciding number is missing (Petalry: no repeat rate; Meeting 1 'a missing number should drag the score').",
+        "5": "Core numbers present and mostly consistent; one important number not measured.",
+        "7": "CAC by channel, cohort data and unit economics that reconcile in code.",
+        "10": "Cohort repeat, gross margin and CAC by channel without notes, and they reconcile (Giva)."
+      }
+    },
+    "C5": {
+      "name": "Fits a pre-seed cheque",
+      "group": "market",
+      "weight": 0.1,
+      "covers": "Capital intensity, valuation, path to the next round.",
+      "anchors": {
+        "0": "Later-stage round or a model that only works with far more capital than the fund deploys (HopBox: 'pass on structure, not people').",
+        "3": "Capital-intensive; the path to the next round depends on a large raise to reach density or scale.",
+        "5": "Moderate capital needs; the next round is plausible if stated milestones are hit.",
+        "7": "This cheque funds clear milestones and a slow path does not force a bad financing (ePlane: cheque sized for a slow regulatory path).",
+        "10": "Capital-light, positive contribution, and this round clearly reaches a priced next round."
+      }
+    },
+    "C6": {
+      "name": "Why now, and what happens when someone copies it",
+      "group": "market",
+      "weight": 0.1,
+      "covers": "What changed in the world; defensibility.",
+      "anchors": {
+        "0": "No why-now, and the founder gets defensive about copying (Prepnest: bristled at the copy question; R8).",
+        "3": "Generic why-now ('market is growing'); copying not considered.",
+        "5": "A specific change that makes this possible now and a plausible but untested moat.",
+        "7": "Why-now tied to a real change, plus something hard to copy (SuperK: franchise-style model with real field execution).",
+        "10": "A real change plus an earned advantage that compounds, with a considered answer to a well-funded copier."
+      }
+    }
+  },
+  "lenses": {
+    "consumer_brand": { "question": "What is the repeat rate?", "boost": ["C3", "C4"], "multiplier": 1.5, "memo": "Giva vs Petalry" },
+    "lending_fintech": { "question": "Who owns the risk?", "boost": ["C2"], "multiplier": 1.5, "memo": "Jai Kisan vs CampusCredit" },
+    "deeptech": { "question": "Is there a milestone path through regulators and customers?", "boost": ["C2", "C6"], "multiplier": 1.5, "memo": "ePlane vs AeroDrop" },
+    "b2b_saas_other": { "question": null, "boost": [], "multiplier": 1, "memo": null }
+  },
+  "missing_evidence": { "score": 2, "confidence": "low", "rule": "R4: a missing number lowers the score; it is never skipped. The gap is listed by name." },
+  "confidence": {
+    "high": "Verified by an external source.",
+    "med": "Deck and form agree.",
+    "low": "Deck only, or contradicted."
+  },
+  "recommendation": {
+    "take_call": { "min_score": 7.5, "requires": ["no red gate", "confidence med or higher on C1, C2, C3"] },
+    "dig": { "min_score": 6.0, "max_score": 7.49, "requires": ["list the exact questions to ask"] },
+    "pass": { "max_score": 5.99, "requires": ["say what would change our view"] }
+  },
+  "ranking": ["bucket: clear, flagged, outside_mandate", "score desc", "evidence coverage desc", "received_at asc"],
+  "reconciliation_tolerance_pct": 5
+}

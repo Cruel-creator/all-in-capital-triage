@@ -95,11 +95,51 @@ async function traces() {
   if (!r.ok) console.log(`     ${JSON.stringify(body).slice(0, 200)}`);
 }
 
+/** --embed: one embedding through the gateway; prints dimensions only. */
+async function embedding() {
+  const { embed } = await import("../src/lib/llm/gateway");
+  try {
+    const [v] = await embed({ step: "check_keys", inputs: ["Pre-seed fintech lending to farmers"] });
+    console.log(`OK   embeddings ${process.env.EMBEDDING_MODEL}: ${v.length} dimensions`);
+  } catch (e) {
+    console.log(`FAIL embeddings ${process.env.EMBEDDING_MODEL}: ${(e as Error).message.slice(0, 900)}`);
+    // diagnosis only: ask OpenRouter directly which embedding models this key may use
+    for (const model of ["google/gemini-embedding-001", "google/gemini-embedding-2", "openai/text-embedding-3-small", "mistralai/mistral-embed-2312", "qwen/qwen3-embedding-4b"]) {
+      const r = await fetch("https://openrouter.ai/api/v1/embeddings", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
+        body: JSON.stringify({ model, input: ["test"] }),
+      });
+      const b = await r.json().catch(() => ({}));
+      console.log(`     direct ${model.padEnd(34)} ${r.status} ${r.ok ? `${b.data?.[0]?.embedding?.length} dims` : String(b?.error?.message ?? "").slice(0, 110)}`);
+    }
+  }
+}
+
+async function firecrawl() {
+  if (!process.env.FIRECRAWL_API_KEY) {
+    // report shape only, never the value
+    const { readFileSync } = await import("node:fs");
+    const lines = readFileSync(".env.local", "utf8").split(/\r?\n/).filter((l) => /firecrawl/i.test(l));
+    const shape = lines.map((l) => `${l.split("=")[0].trim()}=${l.includes("=") && l.split("=").slice(1).join("=").trim() ? "<value>" : "<empty>"}`);
+    return console.log(`FAIL firecrawl: FIRECRAWL_API_KEY not set. Lines mentioning firecrawl in .env.local: ${shape.length ? shape.join(" | ") : "none"}`);
+  }
+  const { Firecrawl } = await import("firecrawl");
+  try {
+    const r = await new Firecrawl({ apiKey: process.env.FIRECRAWL_API_KEY }).search("All In Capital Mumbai pre-seed fund", { limit: 1 });
+    console.log(`OK   firecrawl search: ${r.web?.length ?? 0} result(s)`);
+  } catch (e) {
+    console.log(`FAIL firecrawl: ${(e as Error).message.slice(0, 200)}`);
+  }
+}
+
 (async () => {
   if (process.argv.includes("--traces")) return traces();
+  if (process.argv.includes("--embed")) return embedding();
   await supabase();
   await langfuse();
   await portkey();
   await openrouter();
+  await firecrawl();
   if (process.argv.includes("--gemini")) await gemini(); // direct Gemini key check; unused when routing via OpenRouter
 })();

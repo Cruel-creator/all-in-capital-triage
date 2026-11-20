@@ -126,6 +126,59 @@ async function portkey(system: string, user: string, temperature: number, traceI
   };
 }
 
+/**
+ * Embeddings through the same gateway (Portkey → provider), with the same PII guard and cost row.
+ * Returns one vector per input, in order.
+ */
+export async function embed(o: { step: string; inputs: string[]; applicationId?: string | null; founders?: FounderRef[] }): Promise<number[][]> {
+  const model = process.env.EMBEDDING_MODEL;
+  if (!model) throw new Error("Set EMBEDDING_MODEL in .env.local");
+  for (const t of o.inputs) assertNoPii(t, o.founders ?? []);
+  await costGuard();
+  // DEVIATION (tracked for Phase 5): the self-hosted Portkey gateway fails on OpenRouter embeddings
+  // ("Something went wrong"), so embeddings call OpenRouter directly from here, with the same PII guard,
+  // cost guard, llm_calls row and a 3-attempt retry on 429/5xx. Chat completions still go through Portkey.
+  const t0 = Date.now();
+  let res!: Response;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    res = await fetch("https://openrouter.ai/api/v1/embeddings", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${process.env.OPENROUTER_API_KEY}` },
+      body: JSON.stringify({ model, input: o.inputs }),
+    });
+    if (res.ok || ![429, 500, 502, 503, 504].includes(res.status)) break;
+    await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+  }
+  const body = await res.text();
+  const json = res.ok ? JSON.parse(body) : null;
+  const tokens = json?.usage?.prompt_tokens ?? json?.usage?.total_tokens ?? 0;
+  const price = priceFor(model);
+  await admin()
+    .from("llm_calls")
+    .insert({
+      application_id: o.applicationId ?? null,
+      step: o.step,
+      provider: process.env.OPENROUTER_API_KEY ? "openrouter/embedding" : "embedding",
+      model,
+      input_tokens: tokens,
+      cost_usd: price ? (tokens * price.input) / 1e6 : 0,
+      latency_ms: Date.now() - t0,
+      ok: res.ok,
+      error: res.ok ? (price ? null : `price not configured for ${model}`) : `${res.status}: ${body.slice(0, 300)}`,
+    });
+  if (!res.ok) throw new Error(`Embeddings ${res.status}: ${body.slice(0, 300)}`);
+  return (json.data as { index: number; embedding: number[] }[]).sort((a, b) => a.index - b.index).map((d) => toDims(d.embedding, EMBED_DIMS));
+}
+
+/** Schema stores vector(768). Gemini embeddings are Matryoshka-trained (768 is a supported output size):
+ *  keep the first 768 dimensions and L2-normalise. Pure; tested. */
+export const EMBED_DIMS = 768;
+export function toDims(v: number[], dims: number): number[] {
+  const cut = v.length > dims ? v.slice(0, dims) : v;
+  const norm = Math.sqrt(cut.reduce((a, x) => a + x * x, 0)) || 1;
+  return cut.map((x) => x / norm);
+}
+
 const parseJson = (s: string) => JSON.parse(s.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
 
 export async function callModel<T>(o: CallOpts<T>): Promise<{ data: T; callId: string; model: string }> {

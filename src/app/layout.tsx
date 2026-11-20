@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import "./globals.css";
+import { MobileBar, Rail } from "@/components/shell";
+import { themeScript } from "@/components/theme";
+import { SourceProvider } from "@/components/source-drawer";
+import { CommandPalette } from "@/components/command-palette";
+import { loadPipeline } from "@/lib/data/pipeline";
+import { ACTION } from "@/components/ui";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
+
+export const metadata: Metadata = { title: "All In Capital · Triage", description: "Inbound application triage for All In Capital" };
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const rows = await loadPipeline().catch(() => []);
+  const items = [
+    { label: "Pipeline", href: "/" },
+    ...rows.map((r) => ({ label: r.company, hint: r.action ? ACTION[r.action].label : r.status, href: `/applications/${r.id}` })),
+  ];
+  return (
+    <html lang="en-IN" className={`${inter.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-dvh bg-canvas text-ink">
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-[6px] focus:bg-canvas focus:px-3 focus:py-2 elev-2">
+          Skip to content
+        </a>
+        <SourceProvider>
+          <div className="flex">
+            <Rail />
+            <div className="min-w-0 flex-1">
+              <MobileBar />
+              <main id="main" className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
+                {children}
+              </main>
+            </div>
+          </div>
+          <CommandPalette items={items} />
+        </SourceProvider>
+      </body>
+    </html>
+  );
+}

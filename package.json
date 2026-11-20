@@ -13,7 +13,10 @@
     "seed": "tsx scripts/seed.ts",
     "worker": "tsx scripts/worker.ts",
     "extract": "tsx scripts/extract.ts",
-    "check:keys": "tsx scripts/check-keys.ts"
+    "check:keys": "tsx scripts/check-keys.ts",
+    "embed": "tsx scripts/embed.ts",
+    "check:contrast": "tsx scripts/check-contrast.ts",
+    "pipeline": "tsx scripts/run-pipeline.ts"
   },
   "dependencies": {
     "@langfuse/otel": "^6.1.1",
@@ -21,6 +24,7 @@
     "@opentelemetry/sdk-node": "^0.301.2",
     "@supabase/supabase-js": "^2.117.3",
     "clsx": "^2.1.1",
+    "firecrawl": "^4.54.0",
     "motion": "^14.1.0",
     "next": "^15.5.27",
     "react": "^19.3.0",

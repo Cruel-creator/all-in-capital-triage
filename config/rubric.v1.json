@@ -3,7 +3,12 @@
   "scale": [0, 10],
   "note": "Initial rubric from the build prompt sections 5a-5c. Anchors cite the deal memos (Deal_Memos.pdf) and partner meeting notes.",
   "gates": {
-    "G1": { "name": "Stage and cheque fit", "rule": "Pre-seed or seed, first institutional round, sensible valuation (roughly a $100K-$500K cheque).", "routes_to": "kushal" },
+    "G1": {
+      "name": "Stage and cheque fit",
+      "rule": "Pre-seed or seed, first institutional round, sensible valuation (roughly a $100K-$500K cheque).",
+      "routes_to": "kushal",
+      "params": { "allowed_stages": ["pre-seed", "preseed", "seed"], "max_raise_inr": 100000000, "max_post_money_inr": 400000000, "prior_institutional_pattern": "institutional|seed round|series [a-z]|led by .* fund" }
+    },
     "G2": { "name": "Regulatory existence risk", "rule": "Existence depends on a favourable regulatory change, or a single rule change would hit the business directly (R6, Coinlane).", "routes_to": "kushal" },
     "G3": { "name": "Portfolio conflict", "rule": "Semantic match of one-liner and product against every portfolio row. Always flag; a false alarm beats a miss (Meeting 4).", "routes_to": "kushal" },
     "G4": { "name": "Integrity", "rule": "Deck and form contradict each other, credentials are inflated, or numbers do not reconcile. Ask for the numbers; never allege.", "routes_to": "kushal" }
@@ -94,6 +99,11 @@
     "deeptech": { "question": "Is there a milestone path through regulators and customers?", "boost": ["C2", "C6"], "multiplier": 1.5, "memo": "ePlane vs AeroDrop" },
     "b2b_saas_other": { "question": null, "boost": [], "multiplier": 1, "memo": null }
   },
+  "written_view": {
+    "note": "Same criterion scores, weighted the way the public thesis reads (founder-market fit framework, why now; no sector lens). Shown next to the revealed view so drift is visible (Meeting 5).",
+    "weights": { "C1": 0.35, "C2": 0.15, "C3": 0.1, "C4": 0.1, "C5": 0.1, "C6": 0.2 }
+  },
+  "sector_lens_map": { "consumer brand": "consumer_brand", "lending fintech": "lending_fintech", "deeptech": "deeptech" },
   "missing_evidence": { "score": 2, "confidence": "low", "rule": "R4: a missing number lowers the score; it is never skipped. The gap is listed by name." },
   "confidence": {
     "high": "Verified by an external source.",

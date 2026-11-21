@@ -101,8 +101,7 @@
   }
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--primary);
-    border-radius: var(--radius-sm);
+    box-shadow: 0 0 0 2px var(--canvas), 0 0 0 4px var(--primary); /* follows the element's own corners */
   }
   ::selection {
     background: color-mix(in srgb, var(--primary) 22%, transparent);
@@ -137,7 +136,7 @@
     transition-duration: 100ms;
     transition-timing-function: var(--ease-out-quint);
   }
-  .press:active {
+  .press:active:not(:disabled) {
     transform: scale(0.96);
   }
   /* 40px minimum hit area around compact controls */

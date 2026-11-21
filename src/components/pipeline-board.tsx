@@ -42,6 +42,7 @@ function Row({ r, refCb }: { r: PipelineRow; refCb: (el: HTMLAnchorElement | nul
     <Link
       ref={refCb}
       href={`/applications/${r.id}`}
+      aria-label={`${r.company}, ${sectorName(r.sector ?? r.sector_label)}. ${busy ? "Still being read" : r.status === "needs_attention" ? "Needs a look" : `${t.line || t.verdict} Rated ${ratingWord(r.total).word.toLowerCase()}.${r.gates.length ? ` Gates: ${r.gates.map((g) => GATE_NAMES[g]).join(", ")}.` : ""}`}`}
       data-row
       className="grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-surface-1 focus-visible:bg-surface-1 md:grid-cols-[300px_1fr_auto] md:items-center"
     >
@@ -137,11 +138,11 @@ export function PipelineBoard({ rows }: { rows: PipelineRow[] }) {
             );
           })}
         </div>
-        <div className="flex items-center gap-2">
-          <label className="relative">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <label className="relative min-w-0 flex-1 sm:flex-none">
             <span className="sr-only">Search applications</span>
             <input ref={search} data-search value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search  /"
-              className="h-8 w-[200px] rounded-[6px] bg-canvas px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)] focus:shadow-[0_0_0_2px_var(--primary)] focus:outline-none" />
+              className="h-8 w-full rounded-[6px] sm:w-[200px] bg-canvas px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)] focus:shadow-[0_0_0_2px_var(--primary)] focus:outline-none" />
           </label>
           <div role="group" aria-label="Layout" className="flex rounded-[6px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
             {(["lanes", "table"] as const).map((v) => (

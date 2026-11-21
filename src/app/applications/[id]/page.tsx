@@ -51,7 +51,7 @@ function Cited({ text, claims }: { text: string; claims: ClaimLite[] }) {
         const m = p.match(/^\[(.+)\]$/);
         if (!m) return <span key={i}>{p}</span>;
         return (
-          <span key={i} className="mx-0.5 inline-flex translate-y-[-1px] gap-0.5 align-middle">
+          <span key={i} className="mx-0.5 inline-flex max-w-full translate-y-[-1px] flex-wrap gap-0.5 align-middle">
             {m[1].split(/\s*,\s*/).filter((k) => /^[a-z]\d{2}$/i.test(k)).map((k) => {
               const c = claims.find((x) => x.key === k);
               return c ? <ClaimChip key={k} kind={c.origin === "research" ? "finding" : "claim"} id={c.id} code={k} /> : <span key={k} className="font-mono text-[12px] text-ink-subtle">{k}</span>;
@@ -213,18 +213,18 @@ function CouldntFind({ d }: { d: Detail }) {
       )}
       <details className="mt-3">
         <summary className="cursor-pointer text-[12px] font-medium text-primary">Queries tried ({q.length})</summary>
-        <table className="mt-2 w-full text-left text-[12px]">
+        <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-[12px]">
           <thead className="text-ink-subtle"><tr><th className="py-1 pr-2 font-medium">Looking for</th><th className="py-1 pr-2 font-medium">Query</th><th className="num py-1 text-right font-medium">Results</th></tr></thead>
           <tbody>
             {q.map((x) => (
               <tr key={x.id} className="border-t border-hairline align-top">
                 <td className="py-1.5 pr-2 text-ink-subtle">{x.purpose.replace(/_/g, " ")}</td>
-                <td className="py-1.5 pr-2 font-mono text-[11px] text-ink-muted">{x.query}{x.error && <span className="mt-0.5 block font-sans text-amber">{x.error}</span>}</td>
+                <td className="py-1.5 pr-2 font-mono text-[11px] text-ink-muted [overflow-wrap:anywhere]">{x.query}{x.error && <span className="mt-0.5 block font-sans text-amber">{x.error}</span>}</td>
                 <td className="num py-1.5 text-right">{x.result_count}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </details>
     </Panel>
   );
@@ -338,13 +338,13 @@ export default async function ApplicationPage({ params, searchParams }: { params
       )}
       <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <section className="space-y-3" aria-labelledby="h-crit">
+        <section className="min-w-0 space-y-3" aria-labelledby="h-crit">
           <h2 id="h-crit" className="text-[14px] font-semibold" data-reveal>How it reads, area by area</h2>
           {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} canAct={!!user} />) : (
             <div className="elev-1 rounded-[8px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
         </section>
-        <section className="space-y-3" aria-labelledby="h-next">
+        <section className="min-w-0 space-y-3" aria-labelledby="h-next">
           <h2 id="h-next" className="text-[14px] font-semibold" data-reveal>What happens next</h2>
           <div data-reveal>
             <Composer

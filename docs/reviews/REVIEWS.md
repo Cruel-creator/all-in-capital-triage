@@ -40,3 +40,7 @@ Tests added for each pure fix (114 passing).
 ## UI (for the UI rebuild)
 
 Blockers: no navigation on phones; `/` and j/k don't work on the Board view; the command palette lists no screens. Then: one primary button per view, accent colour on neutral ratings, off-scale radii, developer text in the UI. Design calls for the owner: keep or drop BlurText/spotlight (DESIGN.md says no glows), Board vs table as the default, compact lane tiles.
+
+## Privacy
+
+The PII minimisation audit (Phase 5) is in `../PII-AUDIT.md`.

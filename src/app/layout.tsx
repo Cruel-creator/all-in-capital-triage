@@ -6,6 +6,7 @@ import { themeScript } from "@/components/theme";
 import { SourceProvider } from "@/components/source-drawer";
 import { CommandPalette } from "@/components/command-palette";
 import { loadPipeline } from "@/lib/data/pipeline";
+import { admin } from "@/lib/db/admin";
 import { ACTION } from "@/components/ui";
 import { currentUser } from "@/lib/google/session";
 import { googleConfigured, mailboxEmail } from "@/lib/google/client";
@@ -16,7 +17,10 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", 
 export const metadata: Metadata = { title: "All In Capital · Triage", description: "Inbound application triage for All In Capital" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [rows, user, gmail] = await Promise.all([loadPipeline().catch(() => []), currentUser(), mailboxEmail().catch(() => null)]);
+  const [rows, user, gmail, limits] = await Promise.all([
+    loadPipeline().catch(() => []), currentUser(), mailboxEmail().catch(() => null),
+    admin().from("cost_limits").select("paused_at").eq("id", 1).maybeSingle().then((r) => r.data, () => null),
+  ]);
   const account = { user: user?.email ?? null, gmail, configured: googleConfigured() };
   const items = [
     { label: "Pipeline", href: "/", hint: "screen" },
@@ -40,6 +44,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Rail account={account} />
             <div className="min-w-0 flex-1">
               <MobileBar account={account} />
+              {limits?.paused_at && (
+                <div role="alert" className="border-b border-hairline bg-amber-bg px-4 py-2 text-[13px] text-amber md:px-6">
+                  The queue is paused: today’s spend passed the daily limit. <a href="/ops" className="font-medium underline">Review on Cost &amp; ops</a>
+                </div>
+              )}
               <main id="main" className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
                 {children}
               </main>

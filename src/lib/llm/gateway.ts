@@ -77,8 +77,10 @@ export async function costGuard(estimateUsd = 0) {
   if (!lim) return;
   if (lim.paused_at) throw new QueuePausedError(`Queue paused: ${lim.pause_reason ?? "daily cost limit"}`);
   const since = istDayStart();
-  const { data: rows } = await db.from("llm_calls").select("cost_usd").gte("created_at", since);
-  const spent = (rows ?? []).reduce((a, r) => a + Number(r.cost_usd), 0);
+  // summed in the database: reading rows caps at 1,000 and would undercount on a busy day
+  const roll = await db.rpc("cost_rollup", { day_start: since });
+  if (roll.error) throw new Error(`Couldn't check today's spend: ${roll.error.message}`); // fail closed, never spend blind
+  const spent = Number((roll.data as { today: number }).today ?? 0);
   if (spent + estimateUsd > Number(lim.daily_usd)) {
     const reason = `Daily limit $${lim.daily_usd} passed ($${spent.toFixed(4)} spent today IST)`;
     await db.from("cost_limits").update({ paused_at: new Date().toISOString(), pause_reason: reason }).eq("id", 1);

@@ -28,7 +28,7 @@ export type PipelineRow = {
 export async function loadPipeline(): Promise<PipelineRow[]> {
   const db = admin();
   const [apps, scores, recs, gates, crits] = await Promise.all([
-    db.from("applications").select("id, company_name, one_liner, sector_label, sector_inferred, source, received_at, status, status_reason, current_step"),
+    db.from("applications").select("id, company_name, one_liner, sector_label, sector_inferred, source, received_at, status, status_reason, current_step").eq("is_synthetic", false), // volume-test variants stay out of the pipeline
     db.from("scores").select("application_id, view, total, founder_subtotal, market_subtotal, weights_used, evidence_coverage_pct, written_fit"),
     db.from("recommendations").select("application_id, bucket, action"),
     db.from("gates").select("application_id, gate, tripped"),

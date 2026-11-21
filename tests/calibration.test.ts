@@ -95,3 +95,9 @@ test("only public http(s) URLs are scraped", async () => {
   assert.equal(isSafeUrl("https://example.com/about"), true);
   for (const u of ["file:///etc/passwd", "http://localhost:3000", "http://127.0.0.1", "http://192.168.1.4/x", "http://10.0.0.1", "http://169.254.169.254/latest", "http://intranet"]) assert.equal(isSafeUrl(u), false, u);
 });
+
+test("queue retries back off 30s, 2 min, 8 min", async () => {
+  const { backoffSeconds, MAX_ATTEMPTS } = await import("../src/lib/queue");
+  assert.deepEqual([1, 2, 3].map(backoffSeconds), [30, 120, 480]);
+  assert.equal(MAX_ATTEMPTS, 3);
+});

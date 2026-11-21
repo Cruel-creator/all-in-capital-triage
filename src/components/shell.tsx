@@ -11,7 +11,7 @@ const NAV: { href: string; label: string; soon?: boolean }[] = [
   { href: "/calibration", label: "Calibration" },
   { href: "/corrections", label: "Corrections" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/ops", label: "Cost & ops", soon: true },
+  { href: "/ops", label: "Cost & ops" },
   { href: "/settings", label: "Settings" },
 ];
 

@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // a separate output folder lets a production build run beside the dev server (NEXT_DIST_DIR=.next-build)
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // server-only packages used by data loaders and the pipeline
   serverExternalPackages: ["unpdf", "firecrawl", "@opentelemetry/sdk-node", "@langfuse/otel"],
   poweredByHeader: false,

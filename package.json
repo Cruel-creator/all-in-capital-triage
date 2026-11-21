@@ -19,7 +19,8 @@
     "pipeline": "tsx scripts/run-pipeline.ts",
     "draft": "tsx scripts/draft.ts",
     "sync:threads": "tsx scripts/sync-threads.ts",
-    "backtest": "tsx scripts/backtest.ts"
+    "backtest": "tsx scripts/backtest.ts",
+    "enqueue": "tsx scripts/enqueue.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

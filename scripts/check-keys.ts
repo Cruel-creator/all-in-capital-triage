@@ -116,6 +116,19 @@ async function embedding() {
   }
 }
 
+/** Google OAuth client: a fake code returns invalid_grant for a valid client, invalid_client otherwise. */
+async function google() {
+  const id = process.env.GOOGLE_CLIENT_ID, secret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!id || !secret) return console.log(`FAIL google oauth: ${!id ? "GOOGLE_CLIENT_ID" : "GOOGLE_CLIENT_SECRET"} not set`);
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code: "fake", client_id: id, client_secret: secret, redirect_uri: "http://localhost:3000/api/google/callback", grant_type: "authorization_code" }),
+  });
+  const err = (await r.json().catch(() => ({}))).error;
+  console.log(`${ok(err === "invalid_grant")} google oauth client: ${err === "invalid_grant" ? "client id and secret accepted" : err}`);
+}
+
 async function firecrawl() {
   if (!process.env.FIRECRAWL_API_KEY) {
     // report shape only, never the value
@@ -141,5 +154,6 @@ async function firecrawl() {
   await portkey();
   await openrouter();
   await firecrawl();
+  await google();
   if (process.argv.includes("--gemini")) await gemini(); // direct Gemini key check; unused when routing via OpenRouter
 })();

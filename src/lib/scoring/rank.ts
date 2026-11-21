@@ -23,6 +23,7 @@ export const MISSING = { score: 2, confidence: "low" as Confidence };
 
 export function weighted(scores: CritScore[], weights: Record<Criterion, number>, subset: Criterion[] = CRITERIA): number {
   const ws = subset.reduce((a, c) => a + weights[c], 0);
+  if (ws <= 0) return 0; // a group with no weight contributes nothing (never NaN)
   const sum = subset.reduce((a, c) => a + weights[c] * (scores.find((s) => s.criterion === c)?.score ?? MISSING.score), 0);
   return r1(sum / ws);
 }
@@ -62,7 +63,8 @@ export function topRules(scores: CritScore[], weights: Record<Criterion, number>
 export const lensFor = (sector: string, map: Record<string, string>) => map[sector.toLowerCase()] ?? null;
 
 export function writtenFit(sector: string, sectors: { in: string[]; stretch: string[]; outside: string[] }): WrittenFit {
-  const s = sector.toLowerCase();
+  const s = sector.toLowerCase().trim();
+  if (!s) return "stretch"; // unknown sector is never assumed in-thesis
   if (sectors.in.some((x) => s.includes(x) || x.includes(s))) return "in";
   if (sectors.outside.some((x) => s.includes(x))) return "outside";
   return "stretch";

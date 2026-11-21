@@ -1,8 +1,10 @@
-// Clears the session cookie. The connected mailbox stays connected (Riya's tokens stay in google_accounts).
-import { NextResponse, type NextRequest } from "next/server";
+// Clears the session cookie. POST only, so another site can't sign you out with a link or image.
+// The connected mailbox stays connected (its tokens stay in google_accounts).
+import { NextResponse } from "next/server";
+import { appUrl } from "@/lib/google/client";
 
-export async function GET(req: NextRequest) {
-  const res = NextResponse.redirect(new URL("/", req.url));
+export async function POST() {
+  const res = NextResponse.redirect(`${appUrl()}/`, 303);
   res.cookies.delete("session");
   return res;
 }

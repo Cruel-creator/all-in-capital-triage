@@ -4,6 +4,7 @@
 import { admin, must } from "./db/admin";
 import { embed } from "./llm/gateway";
 import { similarCorrections } from "./retrieval";
+import { redact } from "./llm/pii";
 
 export const PATTERNS = [
   "missing-repeat-rate", "credentials-over-evidence", "cac-not-measured", "top-down-market",
@@ -20,7 +21,7 @@ export const appliesTo = (criterion: string, hit: { criterion: string; similarit
 
 /** Replaces the corrected company's founder names so they never reach a model (non-negotiable 5). Pure; tested. */
 export function redactFounders(text: string, founders: string[]): string {
-  let out = text;
+  let out = redact(text, []); // emails, phones, LinkedIn URLs: never reach a prompt
   for (const full of founders) {
     const parts = full.replace(/^Dr\.?\s*/i, "").split(/\s+/).filter((p) => p.length > 1);
     for (const p of [full, ...parts].sort((a, b) => b.length - a.length)) {

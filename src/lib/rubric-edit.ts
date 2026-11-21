@@ -17,6 +17,9 @@ export function rubricProblems(e: RubricEdit): string[] {
   const p: string[] = [];
   const keys = ["C1", "C2", "C3", "C4", "C5", "C6"];
   if (keys.some((k) => !(k in e.weights) || !Number.isFinite(e.weights[k]) || e.weights[k] < 0)) p.push("Every criterion needs a weight of zero or more.");
+  const group = (cs: string[]) => cs.reduce((a, c) => a + (e.weights[c] > 0 ? e.weights[c] : 0), 0);
+  if (group(["C1", "C2", "C4"]) <= 0) p.push("At least one founder area (founder-market fit, team, speed) needs a weight.");
+  if (group(["C3", "C5", "C6"]) <= 0) p.push("At least one market area (customer pull, market, why now) needs a weight.");
   if (!(e.call > 0 && e.call <= 10)) p.push("The call threshold must be between 0 and 10.");
   if (!(e.dig >= 0 && e.dig < e.call)) p.push("The dig threshold must be below the call threshold.");
   for (const [k, m] of Object.entries(e.lensMultipliers)) if (!(m >= 1 && m <= 3)) p.push(`The ${k.replace(/_/g, " ")} lens multiplier must be between 1 and 3.`);

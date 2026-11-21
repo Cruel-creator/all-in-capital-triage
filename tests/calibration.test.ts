@@ -77,3 +77,21 @@ test("a correction applies to its own criterion at 0.6, to others only at 0.72",
   assert.equal(appliesTo("C1", { criterion: "C2", similarity: 0.66 }), false);
   assert.equal(appliesTo("C1", { criterion: "C2", similarity: 0.75 }), true);
 });
+
+test("correction reasons also lose emails and phone numbers", () => {
+  const out = redactFounders("Ask ravi@acme.in or call 98765 43210 about repeat data", []);
+  assert.ok(!/@|98765/.test(out), out);
+});
+
+test("unknown sector is never in-thesis; zero-weight group gives 0, not NaN", async () => {
+  const { writtenFit, weighted } = await import("../src/lib/scoring/rank");
+  assert.equal(writtenFit("", { in: ["fintech"], stretch: [], outside: ["healthcare"] }), "stretch");
+  const w = { C1: 0, C2: 0, C3: 0.5, C4: 0, C5: 0.25, C6: 0.25 } as const;
+  assert.equal(weighted([{ criterion: "C1", score: 5, confidence: "med", rules: [] }], w, ["C1", "C2", "C4"]), 0);
+});
+
+test("only public http(s) URLs are scraped", async () => {
+  const { isSafeUrl } = await import("../src/lib/research/sources");
+  assert.equal(isSafeUrl("https://example.com/about"), true);
+  for (const u of ["file:///etc/passwd", "http://localhost:3000", "http://127.0.0.1", "http://192.168.1.4/x", "http://10.0.0.1", "http://169.254.169.254/latest", "http://intranet"]) assert.equal(isSafeUrl(u), false, u);
+});

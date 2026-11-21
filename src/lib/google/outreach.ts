@@ -6,10 +6,10 @@ import { lintEmail, type Template } from "../email/lint";
 import { diffText } from "../email/diff";
 import { bookEvent, busy, mailbox, readThread, sendMail } from "./client";
 import { readReply } from "./reply";
-import { addWorkingDays, formatSlot, isFree, pickSlots, type Slot } from "./slots";
+import { addWorkingDays, candidateSlots, formatSlot, isFree, pickSlots, type Slot } from "./slots";
 
 export type ThreadContext = { template: Template; subject: string; first_name: string; signoff: string; offered: Slot[]; company: string; deeptech: boolean };
-export type Pending = { subject: string; body: string; in_reply_to: string | null; slot?: Slot; offered?: Slot[]; reason: string };
+export type Pending = { subject: string; body: string; in_reply_to: string | null; slot?: Slot; offered?: Slot[]; reason: string; event_id?: string; event_link?: string };
 
 const EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 const reSubject = (s: string) => (/^re:/i.test(s) ? s : `Re: ${s}`);
@@ -42,17 +42,31 @@ export async function sendDraft(o: { applicationId: string; draftId: string; to:
   let body: string = v.body;
   if (d.template === "invite") {
     const b = await busy(new Date().toISOString(), new Date(Date.now() + 16 * 864e5).toISOString());
-    offered = o.slots?.length === 2 && o.slots.every((s) => isFree(s, b) && new Date(s.start) > new Date()) ? o.slots : pickSlots(new Date(), b);
+    // client-supplied slots must still be real Tue/Thu afternoon candidates and free right now
+    const legit = new Set(candidateSlots(new Date()).map((s) => s.start));
+    offered = o.slots?.length === 2 && o.slots.every((s) => legit.has(s.start) && isFree(s, b)) ? o.slots : pickSlots(new Date(), b);
     if (offered.length < 2) throw new Error("No two free Tuesday or Thursday afternoon slots in the next two weeks.");
     body = fillSlots(body, offered);
   }
 
   const app = must(await db.from("applications").select("company_name, sector_inferred").eq("id", o.applicationId).single(), "application");
   const founder = (await db.from("founders").select("id, full_name, email").eq("application_id", o.applicationId).order("position").limit(1).maybeSingle()).data;
-  const sent = await sendMail({ to: o.to, subject: v.subject, body });
+
+  // claim the draft so a double click or a second tab can't send it twice ("approved" = being sent)
+  const claim = await db.from("email_drafts").update({ status: "approved" }).eq("id", d.id).eq("status", "draft").select("id");
+  if (claim.error || !claim.data?.length) throw new Error("This email is already being sent.");
+  let sent: { id: string; threadId: string };
+  try {
+    sent = await sendMail({ to: o.to, subject: v.subject, body });
+  } catch (e) {
+    await db.from("email_drafts").update({ status: "draft" }).eq("id", d.id); // nothing went out: release the claim
+    throw e;
+  }
   const now = new Date();
 
-  must(await db.from("email_drafts").update({ status: "sent", sent_at: now.toISOString() }).eq("id", d.id), "mark sent");
+  // the email is out: from here on, record what we can and never throw before the thread exists
+  const marked = await db.from("email_drafts").update({ status: "sent", sent_at: now.toISOString() }).eq("id", d.id);
+  if (marked.error) console.error("sent but not marked:", d.id, marked.error.message);
   if (founder && !founder.email) await db.from("founders").update({ email: o.to }).eq("id", founder.id);
   const lines = body.trim().split(/\n/).map((l) => l.trim()).filter(Boolean);
   const context: ThreadContext = {
@@ -60,13 +74,17 @@ export async function sendDraft(o: { applicationId: string; draftId: string; to:
     first_name: founder ? founder.full_name.replace(/^Dr\.?\s*/i, "").split(/\s+/)[0] : "there",
     signoff: lines.at(-1) ?? "Riya",
   };
-  must(
-    await db.from("threads").insert({
+  const thread = await db.from("threads").upsert(
+    {
       application_id: o.applicationId, draft_id: d.id, gmail_thread_id: sent.threadId, state: "sent", founder_email: o.to,
       last_seen_message_id: sent.id, context, follow_up_due_at: d.template === "pass" ? null : addWorkingDays(now).toISOString(),
-    }),
-    "thread",
+    },
+    { onConflict: "gmail_thread_id" },
   );
+  if (thread.error) {
+    console.error("sent but thread not recorded:", sent.threadId, thread.error.message);
+    await event(o.applicationId, "email_sent_unrecorded", { draft_id: d.id, gmail_thread_id: sent.threadId, error: "thread not recorded" });
+  }
 
   // what Riya changed from the first generated draft teaches future drafts (style memory)
   const first = (await db.from("email_versions").select("subject, body").eq("draft_id", d.id).order("n").limit(1).single()).data;
@@ -156,30 +174,59 @@ export async function approvePending(threadId: string, body: string, actor: stri
   const text = body.trim() || p.body;
   if (text.split(/\s+/).length > 150) throw new Error("Keep the reply under 150 words.");
 
+  // claim: a second click (or tab) finds nothing pending and stops here
+  const claimed = await db.from("threads").update({ pending_action: null }).eq("id", t.id).eq("pending_action", t.pending_action).select("id");
+  if (claimed.error || !claimed.data?.length) throw new Error("This was already approved.");
+  const release = () => db.from("threads").update({ pending_action: t.pending_action, pending_payload: p }).eq("id", t.id);
+
   if (t.pending_action === "book") {
     const slot = p.slot!;
-    const b = await busy(slot.start, slot.end);
-    if (!isFree(slot, b)) throw new Error("That slot was taken in the meantime. Check for replies again to get new times.");
     const extra = aditya(c);
-    const ev = await bookEvent({
-      summary: `${c.company} × All In Capital`, start: slot.start, end: slot.end,
-      attendees: [t.founder_email, ...(extra ? [extra] : [])].filter(Boolean) as string[],
-      description: `Intro call with ${c.company}, booked from the triage app.`,
-    });
-    must(await db.from("meetings_booked").insert({ application_id: t.application_id, thread_id: t.id, gcal_event_id: ev.id, start_at: slot.start, end_at: slot.end, includes_aditya: !!extra }), "meeting");
-    await sendMail({ to: t.founder_email, subject: p.subject, body: text, threadId: t.gmail_thread_id, inReplyTo: p.in_reply_to });
-    must(await db.from("threads").update({ state: "booked", pending_action: null, pending_payload: null }).eq("id", t.id), "thread");
+    let ev = p.event_id ? { id: p.event_id, htmlLink: p.event_link ?? "" } : null;
+    try {
+      if (!ev) {
+        const b = await busy(slot.start, slot.end);
+        if (!isFree(slot, b)) throw new Error("That slot was taken in the meantime. Check for replies again to get new times.");
+        ev = await bookEvent({
+          summary: `${c.company} × All In Capital`, start: slot.start, end: slot.end,
+          attendees: [t.founder_email, ...(extra ? [extra] : [])].filter(Boolean) as string[],
+          description: `Intro call with ${c.company}, booked from the triage app.`,
+        });
+        // remember the event first, so a retry never books it twice or trips over our own busy time
+        p.event_id = ev.id;
+        p.event_link = ev.htmlLink;
+        await db.from("meetings_booked").upsert({ application_id: t.application_id, thread_id: t.id, gcal_event_id: ev.id, start_at: slot.start, end_at: slot.end, includes_aditya: !!extra }, { onConflict: "gcal_event_id" });
+      }
+      await db.from("threads").update({ state: "booked", pending_payload: p }).eq("id", t.id);
+    } catch (e) {
+      await release();
+      throw e;
+    }
+    try {
+      await sendMail({ to: t.founder_email, subject: p.subject, body: text, threadId: t.gmail_thread_id, inReplyTo: p.in_reply_to });
+    } catch {
+      // the calendar invite already reached the founder; the confirmation note is a nicety, so say so rather than undo
+      await event(t.application_id, "booking_note_not_sent", { thread_id: t.id, by: actor });
+    }
+    await db.from("threads").update({ pending_payload: null }).eq("id", t.id);
     await event(t.application_id, "call_booked", { thread_id: t.id, slot, by: actor, includes_aditya: !!extra, event_link: ev.htmlLink });
     return { booked: slot };
   }
 
-  const sent = await sendMail({ to: t.founder_email, subject: p.subject, body: text, threadId: t.gmail_thread_id, inReplyTo: p.in_reply_to });
+  let sent: { id: string };
+  try {
+    sent = await sendMail({ to: t.founder_email, subject: p.subject, body: text, threadId: t.gmail_thread_id, inReplyTo: p.in_reply_to });
+  } catch (e) {
+    await release();
+    throw e;
+  }
   const offered = p.offered?.length ? p.offered : c.offered;
   const patch =
     t.pending_action === "follow_up"
       ? { state: "followed_up", followed_up_at: new Date().toISOString() }
       : { state: "counter_proposed" };
-  must(await db.from("threads").update({ ...patch, pending_action: null, pending_payload: null, last_seen_message_id: sent.id, context: { ...c, offered } }).eq("id", t.id), "thread");
+  const upd = await db.from("threads").update({ ...patch, pending_action: null, pending_payload: null, last_seen_message_id: sent.id, context: { ...c, offered } }).eq("id", t.id);
+  if (upd.error) console.error("sent but thread not updated:", t.id, upd.error.message); // the email is out; never throw here
   await event(t.application_id, t.pending_action === "follow_up" ? "follow_up_sent" : "counter_proposal_sent", { thread_id: t.id, by: actor, offered });
   return { sent: true };
 }

@@ -35,6 +35,17 @@ export function isPlaceholder(urlOrDomain: string | null | undefined): boolean {
 }
 
 /** Social feeds rarely scrape and rarely establish facts; they are listed in the query log but not read. */
+/** Only public http(s) URLs are ever scraped: no file:, no localhost, no private or link-local addresses. */
+export function isSafeUrl(url: string): boolean {
+  let u: URL;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+  const h = u.hostname.toLowerCase().replace(/^[|]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal") || !h.includes(".")) return false;
+  if (/^(127.|10.|0.|169.254.|192.168.|172.(1[6-9]|2d|3[01]).)/.test(h)) return false;
+  if (h === "::1" || /^(fc|fd|fe80)/.test(h)) return false;
+  return true;
+}
 export const isSocial = (url: string) => /(^|\.)(instagram\.com|facebook\.com|x\.com|twitter\.com|tiktok\.com|threads\.net|pinterest\.com)$/i.test(hostOf(url));
 
 /**

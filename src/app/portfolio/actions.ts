@@ -13,6 +13,7 @@ const portfolioText = (r: { company: string; one_liner: string; sector: string |
 export async function savePortfolio(input: PortfolioInput) {
   const user = await currentUser();
   if (!user) return { error: "Sign in with Google first." };
+  if (!user.partner) return { error: "Only partners can edit the portfolio: it changes the conflict check." };
   const company = input.company.trim(), one_liner = input.one_liner.trim(), sector = input.sector.trim();
   if (!company || !one_liner) return { error: "Company and one-liner are required." };
   if (!/^https?:\/\/\S+\.\S+/.test(input.source_url.trim())) return { error: "Add a source link (https://…): every portfolio row needs one." };

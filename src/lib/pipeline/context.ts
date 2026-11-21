@@ -36,7 +36,7 @@ export async function loadContext(applicationId: string): Promise<AppContext> {
     "flags",
   );
   const findings = must(
-    await db.from("research_findings").select("id, url, publisher, published_at, quote, extracted_claim, source_type, is_match").eq("application_id", applicationId).eq("is_match", true),
+    await db.from("research_findings").select("id, url, publisher, published_at, quote, extracted_claim, source_type, is_match").eq("application_id", applicationId).eq("is_match", true).order("retrieved_at").order("id"), // same order as the UI: r01, r02…
     "findings",
   );
   const queries = must(await db.from("research_queries").select("purpose, query, result_count, error").eq("application_id", applicationId), "queries");

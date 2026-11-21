@@ -20,7 +20,7 @@ export async function loadDetail(id: string) {
     db.from("claims").select("id, claim_key, text, quote, page_no, origin, metric, raw_value").eq("application_id", id).order("claim_key"),
     db.from("reconciliation_flags").select("id, check, metric, severity, formula, explanation, claim_ids, stated_label").eq("application_id", id),
     db.from("research_queries").select("id, purpose, query, engine, result_count, error, founder_id, ran_at").eq("application_id", id).order("ran_at"),
-    db.from("research_findings").select("*").eq("application_id", id).order("retrieved_at"),
+    db.from("research_findings").select("*").eq("application_id", id).order("retrieved_at").order("id"), // same order as the scorer
     db.from("memos").select("id, company, outcome"),
     db.from("decisions").select("decision, note, created_at, decided_by_email").eq("application_id", id).order("created_at", { ascending: false }),
     db.from("jobs").select("step, status, last_error, langfuse_trace_id, finished_at").eq("application_id", id).order("created_at", { ascending: false }).limit(8),

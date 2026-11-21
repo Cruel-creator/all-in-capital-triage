@@ -10,7 +10,7 @@ import { redact, unredact } from "../llm/pii";
 import { parseForm } from "../seed/parse-form";
 import { founderRefs } from "./extract-claims";
 import { verifyQuote } from "./verify-quote";
-import { founderPageMatches, hostOf, isPlaceholder, isSocial, sourceType, windowAround } from "../research/sources";
+import { founderPageMatches, hostOf, isPlaceholder, isSafeUrl, isSocial, sourceType, windowAround } from "../research/sources";
 import { NO_COMPETITORS, planQueries, type QueryPlan } from "../research/queries";
 
 const MAX_SCRAPES = 6;
@@ -87,7 +87,7 @@ export async function runResearch(o: Ctx) {
   let findings = 0;
 
   const extractAndStore = async (p: QueryPlan, queryId: string, url: string, parentId: string | null): Promise<string | null> => {
-    if (seen.has(url) || scrapes >= MAX_SCRAPES || isPlaceholder(hostOf(url)) || isSocial(url)) return null;
+    if (seen.has(url) || scrapes >= MAX_SCRAPES || !isSafeUrl(url) || isPlaceholder(hostOf(url)) || isSocial(url)) return null;
     seen.add(url);
     scrapes++;
     let doc;

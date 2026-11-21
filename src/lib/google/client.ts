@@ -11,7 +11,8 @@ export const SCOPES = [
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/calendar.freebusy",
 ];
-const redirectUri = () => `${process.env.APP_URL ?? "http://localhost:3000"}/api/google/callback`;
+export const appUrl = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+const redirectUri = () => `${appUrl()}/api/google/callback`;
 const cfg = () => {
   const id = process.env.GOOGLE_CLIENT_ID, secret = process.env.GOOGLE_CLIENT_SECRET;
   if (!id || !secret) throw new Error("Google isn't set up: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local");
@@ -19,8 +20,22 @@ const cfg = () => {
 };
 export const googleConfigured = () => !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
-// session: an HMAC-signed cookie holding the signed-in Google email
-const secret = () => process.env.SESSION_SECRET ?? process.env.SUPABASE_SECRET_KEY ?? "dev-only";
+// session: an HMAC-signed cookie holding the signed-in Google email. No fallback secret: a missing or short
+// SESSION_SECRET is a configuration error, never a guessable default.
+const secret = () => {
+  const s = process.env.SESSION_SECRET;
+  if (!s || s.length < 32) throw new Error("SESSION_SECRET must be set to a random string of 32+ characters");
+  return s;
+};
+const isProd = () => process.env.NODE_ENV === "production";
+const list = (v: string | undefined) => (v ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+
+/** Who may sign in at all: ALLOWED_EMAILS + PARTNER_EMAILS + MAILBOX_EMAIL. Empty list: allowed locally, nobody in production. */
+export function isAllowed(email: string | null) {
+  if (!email) return false;
+  const all = [...list(process.env.ALLOWED_EMAILS), ...list(process.env.PARTNER_EMAILS), ...list(process.env.MAILBOX_EMAIL)];
+  return all.length === 0 ? !isProd() : all.includes(email.toLowerCase());
+}
 export function signSession(email: string, days = 7) {
   const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + days * 864e5 })).toString("base64url");
   return `${payload}.${createHmac("sha256", secret()).update(payload).digest("base64url")}`;
@@ -38,18 +53,24 @@ export function verifySession(token: string | undefined): string | null {
     return null;
   }
 }
-/** Partners decide (Kushal, Aditya). PARTNER_EMAILS is a comma-separated list in .env.local.
- *  Left blank (local testing), whoever is signed in may decide. */
+/** Partners decide (Kushal, Aditya). PARTNER_EMAILS is a comma-separated list.
+ *  Left blank: whoever is signed in may decide locally (testing); nobody may in production. */
 export function isPartner(email: string | null) {
-  if (!email) return false;
-  const list = (process.env.PARTNER_EMAILS ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
-  return list.length === 0 || list.includes(email.toLowerCase());
+  if (!email || !isAllowed(email)) return false;
+  const partners = list(process.env.PARTNER_EMAILS);
+  return partners.length === 0 ? !isProd() : partners.includes(email.toLowerCase());
+}
+
+/** The sending mailbox: MAILBOX_EMAIL if set (Riya's), else the most recent connection (local testing). */
+async function mailboxRow() {
+  const q = admin().from("google_accounts").select("*");
+  const fixed = process.env.MAILBOX_EMAIL?.trim().toLowerCase();
+  return (fixed ? await q.eq("email", fixed).maybeSingle() : await q.order("connected_at", { ascending: false }).limit(1).maybeSingle()).data;
 }
 
 /** The connected mailbox's address, without touching tokens. */
 export async function mailboxEmail(): Promise<string | null> {
-  const r = await admin().from("google_accounts").select("email").order("connected_at", { ascending: false }).limit(1).maybeSingle();
-  return r.data?.email ?? null;
+  return (await mailboxRow())?.email ?? null;
 }
 
 export function authUrl(state: string) {
@@ -70,19 +91,22 @@ export async function connect(code: string): Promise<string> {
   const { id, secret: s } = cfg();
   const t = await tokenCall({ code, client_id: id, client_secret: s, redirect_uri: redirectUri(), grant_type: "authorization_code" });
   const info = await (await fetch("https://openidconnect.googleapis.com/v1/userinfo", { headers: { authorization: `Bearer ${t.access_token}` } })).json();
-  if (!info.email) throw new Error("Google didn't return an email address");
+  if (!info.email || info.email_verified === false) throw new NotAllowedError("unverified");
+  if (!isAllowed(info.email)) throw new NotAllowedError("not_allowed");
   if (!t.refresh_token) throw new Error("No refresh token: remove the app's access in your Google account and connect again");
   must(
-    await admin().from("google_accounts").upsert({ email: info.email, refresh_token: t.refresh_token, access_token: t.access_token, expires_at: new Date(Date.now() + (t.expires_in - 60) * 1000).toISOString(), scopes: t.scope }),
+    await admin().from("google_accounts").upsert({ email: info.email, refresh_token: t.refresh_token, access_token: t.access_token, expires_at: new Date(Date.now() + (t.expires_in - 60) * 1000).toISOString(), scopes: t.scope, connected_at: new Date().toISOString() }),
     "google_accounts",
   );
   return info.email as string;
 }
 
-/** The connected mailbox (Riya's); the most recent connection wins. */
+export class NotAllowedError extends Error {}
+
+/** The sending mailbox (Riya's): MAILBOX_EMAIL when set, so a partner signing in never takes over sending. */
 export async function mailbox(): Promise<{ email: string; token: string } | null> {
   const db = admin();
-  const acc = (await db.from("google_accounts").select("*").order("connected_at", { ascending: false }).limit(1).maybeSingle()).data;
+  const acc = await mailboxRow();
   if (!acc) return null;
   if (acc.access_token && acc.expires_at && new Date(acc.expires_at) > new Date()) return { email: acc.email, token: acc.access_token };
   const { id, secret: s } = cfg();

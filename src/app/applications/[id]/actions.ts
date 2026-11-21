@@ -1,5 +1,5 @@
 "use server";
-// Composer, outreach and decision actions. Sending, replying, booking and deciding each need a signed-in person's click.
+// Composer, outreach and decision actions. Every action needs a signed-in team member. Sending, replying, booking and deciding each need a signed-in person's click.
 import { revalidatePath } from "next/cache";
 import { currentUser } from "@/lib/google/session";
 import { approvePending, dismissPending, offerSlots, sendDraft, syncApplication } from "@/lib/google/outreach";
@@ -13,6 +13,7 @@ import { lintEmail, type Template } from "@/lib/email/lint";
 const isId = (s: string) => /^[0-9a-f-]{36}$/i.test(s);
 
 export async function generateDraft(applicationId: string, template?: Template) {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
   if (!isId(applicationId)) return { error: "Unknown application." };
   try {
     const r = await draftEmail({ applicationId, template });
@@ -24,10 +25,13 @@ export async function generateDraft(applicationId: string, template?: Template) 
 }
 
 export async function redoDraft(applicationId: string, draftId: string, chip?: string, note?: string) {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
   if (!isId(applicationId) || !isId(draftId)) return { error: "Unknown draft." };
   if (chip && !(chip in REDO_CHIPS)) return { error: "Unknown redo option." };
   const db = admin();
-  const d = must(await db.from("email_drafts").select("template, current_version_id").eq("id", draftId).single(), "draft");
+  const d = must(await db.from("email_drafts").select("template, current_version_id, status, application_id").eq("id", draftId).single(), "draft");
+  if (d.application_id !== applicationId) return { error: "Unknown draft." };
+  if (d.status !== "draft") return { error: "This email has been sent and can't be redone." };
   const cur = must(await db.from("email_versions").select("subject, body").eq("id", d.current_version_id).single(), "version");
   try {
     await draftEmail({ applicationId, draftId, template: d.template, redo: { chip: chip as RedoChip | undefined, note: note?.slice(0, 500), previous: cur } });
@@ -40,10 +44,11 @@ export async function redoDraft(applicationId: string, draftId: string, chip?: s
 
 /** Autosave. Consecutive edits within 10 minutes update one "riya_edit" version instead of piling up versions. */
 export async function saveEdit(draftId: string, subject: string, body: string) {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
   if (!isId(draftId)) return { error: "Unknown draft." };
   const db = admin();
   const d = must(await db.from("email_drafts").select("template, current_version_id, status").eq("id", draftId).single(), "draft");
-  if (d.status === "sent") return { error: "This email has been sent and can't be edited." };
+  if (d.status !== "draft") return { error: "This email has been sent and can't be edited." };
   const cur = must(await db.from("email_versions").select("id, n, origin, subject, body, created_at").eq("id", d.current_version_id).single(), "version");
   if (cur.subject === subject && cur.body === body) return { ok: true, unchanged: true };
   const report = lintEmail({ subject, body, template: d.template });
@@ -58,8 +63,11 @@ export async function saveEdit(draftId: string, subject: string, body: string) {
 }
 
 export async function restoreVersion(applicationId: string, draftId: string, versionId: string) {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
   if (![applicationId, draftId, versionId].every(isId)) return { error: "Unknown version." };
   const db = admin();
+  const own = must(await db.from("email_drafts").select("status, application_id").eq("id", draftId).single(), "draft");
+  if (own.application_id !== applicationId || own.status !== "draft") return { error: "This draft can't be changed." };
   const src = must(await db.from("email_versions").select("subject, body, lint_report").eq("id", versionId).eq("draft_id", draftId).single(), "version");
   const last = must(await db.from("email_versions").select("n").eq("draft_id", draftId).order("n", { ascending: false }).limit(1).single(), "last");
   const v = must(await db.from("email_versions").insert({ draft_id: draftId, n: last.n + 1, subject: src.subject, body: src.body, origin: "restore", lint_report: src.lint_report }).select("id").single(), "restore");

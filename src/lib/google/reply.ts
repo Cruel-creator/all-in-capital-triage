@@ -32,7 +32,8 @@ const slotAt = (y: number, mo: number, day: number, h: number, m: number): Slot 
 
 const NEG = /\b(not|cannot|can not|unable|busy|unavailable|tied up)\b|n't\b/;
 const TIME = /\b(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)|\b([01]?\d|2[0-3]):([0-5]\d)\b/;
-const WEEKDAY = /\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/;
+// full day names, plus only the unambiguous short forms ("mon", "sat", "sun" are ordinary words)
+const WEEKDAY = /\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday|tues?|weds?|thu|thurs?|fri)\b\.?/;
 const DATE_A = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/;
 const DATE_B = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?\b/;
 
@@ -57,7 +58,7 @@ function dayOf(s: string, now: Date): { y: number; mo: number; day: number } | n
   }
   const w = s.match(WEEKDAY);
   if (!w) return null;
-  const dow = DAYS.indexOf(w[1]);
+  const dow = DAYS.indexOf(w[1].slice(0, 3));
   let add = (dow - n.dow + 7) % 7;
   if (add === 0) add = 7; // "Thursday" said on a Thursday means next week
   const d = new Date(Date.UTC(n.y, n.mo, n.day + add));
@@ -88,12 +89,12 @@ export function readReply(raw: string, offered: Slot[], now: Date): ReplyRead {
     if (NEG.test(s)) continue;
     const w = s.match(WEEKDAY);
     if (w) {
-      const hits = offeredParts.filter((x) => x.p.dow === DAYS.indexOf(w[1]));
+      const hits = offeredParts.filter((x) => x.p.dow === DAYS.indexOf(w[1].slice(0, 3)));
       if (hits.length === 1) return { kind: "accept", slot: hits[0].o };
     }
-    if (offered[0] && /\b(first|former|option 1|1st)\b/.test(s)) return { kind: "accept", slot: offered[0] };
-    if (offered[1] && /\b(second|latter|option 2|2nd)\b/.test(s)) return { kind: "accept", slot: offered[1] };
-    if (offered[0] && /\b(either|both|any)\b.*\b(work|fine|good|great|suit)/.test(s)) return { kind: "accept", slot: offered[0] };
+    if (offered[0] && /\b((the )?(first|1st) (one|slot|option|time)|former|option (1|one))\b/.test(s)) return { kind: "accept", slot: offered[0] };
+    if (offered[1] && /\b((the )?(second|2nd) (one|slot|option|time)|latter|option (2|two))\b/.test(s)) return { kind: "accept", slot: offered[1] };
+    if (offered[0] && /\b(either|both)( (one|slot|option|time)s?)? (works?|is fine|are fine|suits?)\b/.test(s)) return { kind: "accept", slot: offered[0] };
   }
   return { kind: "unclear" };
 }

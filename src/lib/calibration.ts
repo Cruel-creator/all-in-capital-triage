@@ -126,6 +126,7 @@ export async function runBacktest(log: (s: string) => void = () => {}) {
       validate: (x) => {
         const bad = x.criteria.flatMap((c) => cited(c.rationale)).filter((k) => !ids.has(k));
         if (bad.length) return `Cite only the fact IDs listed (unknown: ${[...new Set(bad)].join(", ")}).`;
+        if (new Set(x.criteria.map((c) => c.criterion)).size !== 6) return "Return each of C1 to C6 exactly once.";
         const uncited = x.criteria.filter((c) => c.score > 2 && cited(c.rationale).length === 0).map((c) => c.criterion);
         return uncited.length ? `Every criterion scored above 2 needs at least one cited fact (missing: ${uncited.join(", ")}).` : null;
       },

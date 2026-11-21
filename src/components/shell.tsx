@@ -27,7 +27,7 @@ function AccountBox({ a }: { a: Account }) {
     <div className="px-2 text-[12px] text-ink-subtle">
       <p className="truncate" title={a.user}>Signed in as <span className="text-ink-muted">{a.user}</span></p>
       {a.gmail && a.gmail !== a.user && <p className="truncate" title={a.gmail}>Sending from {a.gmail}</p>}
-      <a href="/api/google/signout" className="press font-medium text-primary">Sign out</a>
+      <form method="post" action="/api/google/signout"><button type="submit" className="press font-medium text-primary">Sign out</button></form>
     </div>
   );
 }

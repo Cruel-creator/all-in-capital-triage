@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     if (!data) return NextResponse.json({ error: "That source no longer exists. It may have been replaced by a re-run." }, { status: 404 });
     return NextResponse.json(data);
   } catch (e) {
-    return NextResponse.json({ error: `Couldn't load the source: ${(e as Error).message}` }, { status: 500 });
+    console.error("source failed:", (e as Error).message);
+    return NextResponse.json({ error: "Couldn't load this source. Try again." }, { status: 500 });
   }
 }

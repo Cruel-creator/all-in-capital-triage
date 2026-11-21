@@ -14,7 +14,8 @@ const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").t
 const city = (loc: string | null) => clean(loc).split(",")[0] || "India";
 /** "6 years in category and brand roles at a large packaged-food company" → "packaged-food" (a searchable hint, no guessing). */
 export function employerHint(background: string): string {
-  const m = background.match(/\bat (?:a |an |the )?(?:large |leading |private )?([\w-]+(?: [\w-]+)?) (?:company|bank|startup|firm|maker|supplier|chain|distributor|fintech)/i);
+  const m = background.match(/\bat (?:a |an |the )?(?:large |leading |private )?((?!(?:a|an|the)\b)[\w-]+(?: (?!(?:company|bank|startup|firm|for)\b)[\w-]+)?) (?:company|bank|startup|firm|maker|supplier|chain|distributor)\b/i)
+    ?? background.match(/\bat (?:a |an |the )?(fintech|bank|startup|consultancy|hospital chain)\b/i);
   return m ? m[1] : "";
 }
 /** Words from the one-liner that describe the product (for the competitor search). */
@@ -25,6 +26,8 @@ export function productTerms(oneLiner: string | null): string {
 export function planQueries(s: ResearchSubject): QueryPlan[] {
   const q: QueryPlan[] = [];
   const co = clean(s.company);
+  // competitors first: it is the check most likely to change a score, so it gets the scrape budget first
+  q.push({ purpose: s.claims_no_competitors ? "competitors_claim_check" : "competitors", query: `${productTerms(s.one_liner)} India startup`, founder_id: null, needles: [] });
   q.push({ purpose: "company", query: `"${co}" startup ${city(s.location)}`, founder_id: null, needles: [co] });
   q.push({ purpose: "company_news", query: `"${co}" funding OR raises OR launch`, founder_id: null, needles: [co] });
   if (s.legal_name) q.push({ purpose: "registry", query: `"${clean(s.legal_name)}" CIN`, founder_id: null, needles: [clean(s.legal_name), co] });
@@ -35,8 +38,6 @@ export function planQueries(s: ResearchSubject): QueryPlan[] {
     q.push({ purpose: "founder_history", query: `"${name}" ${clean(f.role_title) || "founder"} ${hint}`.trim(), founder_id: f.id, needles: [name] });
     q.push({ purpose: "founder_talks", query: `"${name}" podcast OR interview OR talk`, founder_id: f.id, needles: [name] });
   }
-  // competitors: always useful for C6; essential when the founder claims there are none (RentRoute, Talkbook)
-  q.push({ purpose: s.claims_no_competitors ? "competitors_claim_check" : "competitors", query: `${productTerms(s.one_liner)} India startup`, founder_id: null, needles: [] });
   return q;
 }
 

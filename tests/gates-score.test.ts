@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { g1 } from "../src/lib/pipeline/gates";
 import { uncitedSentences, validateScore } from "../src/lib/pipeline/score";
-import { isPlaceholder, sourceType, windowAround } from "../src/lib/research/sources";
+import { founderPageMatches, isPlaceholder, isSocial, sourceType, windowAround } from "../src/lib/research/sources";
 import { NO_COMPETITORS, employerHint, planQueries } from "../src/lib/research/queries";
 
 const rubric = JSON.parse(readFileSync(join(process.cwd(), "config", "rubric.v1.json"), "utf8"));
@@ -66,4 +66,14 @@ test("research: query plan covers founders, company, registry and a competitor c
   const purposes = plan.map((p) => p.purpose);
   for (const p of ["company", "company_news", "registry", "founder_company", "founder_history", "founder_talks", "competitors_claim_check"]) assert.ok(purposes.includes(p), p);
   assert.equal(employerHint("6 years in category and brand roles at a large packaged-food company"), "packaged-food");
+  // live RentRoute bug: "at a fintech for 4 years" produced the query '"Sameer Qureshi" CEO a'
+  assert.equal(employerHint("Product manager at a fintech for 4 years; launched two payments features."), "fintech");
+  assert.equal(plan[0].purpose, "competitors_claim_check"); // competitor check gets the scrape budget first
+});
+
+test("research: a same-name founder page that never names the company is not the founder", () => {
+  assert.equal(founderPageMatches("Sameer Qureshi, USC Marshall MBA '27, investment banking, fashion startup founder.", "RentRoute"), false);
+  assert.equal(founderPageMatches("RentRoute co-founder Sameer Qureshi on rent payments by card", "RentRoute"), true);
+  assert.equal(isSocial("https://www.instagram.com/popular/x/"), true);
+  assert.equal(isSocial("https://inc42.com/x"), false);
 });

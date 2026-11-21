@@ -34,6 +34,17 @@ export function isPlaceholder(urlOrDomain: string | null | undefined): boolean {
   return /\.(example|invalid|test|localhost)(\/|$)|(^|\.)example\.(com|org|net)(\/|$)|-example\b/i.test(urlOrDomain);
 }
 
+/** Social feeds rarely scrape and rarely establish facts; they are listed in the query log but not read. */
+export const isSocial = (url: string) => /(^|\.)(instagram\.com|facebook\.com|x\.com|twitter\.com|tiktok\.com|threads\.net|pinterest\.com)$/i.test(hostOf(url));
+
+/**
+ * A page about a founder only counts as theirs if it also names the applicant's company. Same-name people are
+ * common and the seed profiles are placeholders: a missed profile is safe, a wrong one is a fabricated dossier.
+ */
+export function founderPageMatches(markdown: string, company: string): boolean {
+  return markdown.toLowerCase().includes(company.toLowerCase());
+}
+
 /** Up to `max` characters of text around mentions of any needle (paragraph-bounded). Pages never go to the model whole. */
 export function windowAround(markdown: string, needles: string[], max = 2000): string {
   const paras = markdown.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);

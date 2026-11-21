@@ -15,6 +15,7 @@ import { PIPELINE_EXPECTATIONS } from "../tests/golden/pipeline-expectations";
 
 const db = admin();
 const skipResearch = process.argv.includes("--skip-research");
+const reportOnly = process.argv.includes("--report-only");
 const only = process.argv.slice(2).find((a) => !a.startsWith("--"))?.toLowerCase();
 
 async function step<T>(appId: string, name: string, traceId: string, fn: (spanId: string) => Promise<T>): Promise<T> {
@@ -43,11 +44,28 @@ async function step<T>(appId: string, name: string, traceId: string, fn: (spanId
   for (const app of apps.filter((a) => !only || a.company_name.toLowerCase() === only)) {
     const traceId = startTrace("phase2:research+gates+score+rank", { applicationId: app.id, company: app.company_name });
     try {
-      const research = skipResearch ? null : await step(app.id, "research", traceId, (spanId) => runResearch({ applicationId: app.id, traceId, spanId }));
-      const g = await step(app.id, "gates", traceId, (spanId) => runGates({ applicationId: app.id, traceId, spanId }));
-      const sc = await step(app.id, "score", traceId, (spanId) => runScore({ applicationId: app.id, traceId, spanId, sector: g.sector, gates: g.gates }));
-      const rk = await step(app.id, "rank", traceId, async () => runRank(app.id));
-      if (g.attention.length || sc.attention.length) console.log(`${app.company_name}: needs attention: ${[...g.attention, ...sc.attention].join("; ")}`);
+      let research: { configured: boolean; queries: number; results: number; findings: number; matched: number } | null;
+      let g: { sector: string; gates: Record<string, boolean>; attention: string[] };
+      let rk: { total: number; action: "take_call" | "dig" | "pass"; bucket: "clear" | "flagged" | "outside_mandate"; fit: string; lens: string | null; coverage: number };
+      if (reportOnly) {
+        // rebuild the report from what is stored: no model calls, no writes
+        const a = must(await db.from("applications").select("sector_inferred").eq("id", app.id).single(), "app");
+        const s = must(await db.from("scores").select("total, written_fit, lens, evidence_coverage_pct").eq("application_id", app.id).eq("view", "revealed").single(), "score");
+        const r = must(await db.from("recommendations").select("action, bucket").eq("application_id", app.id).single(), "rec");
+        const gr = must(await db.from("gates").select("gate, tripped").eq("application_id", app.id), "gates");
+        const q = must(await db.from("research_queries").select("result_count, engine").eq("application_id", app.id), "queries");
+        const f = must(await db.from("research_findings").select("is_match").eq("application_id", app.id), "findings");
+        research = { configured: q.some((x) => x.engine === "firecrawl"), queries: q.filter((x) => x.engine === "firecrawl").length, results: q.reduce((n, x) => n + x.result_count, 0), findings: f.length, matched: f.filter((x) => x.is_match).length };
+        g = { sector: a.sector_inferred ?? "?", gates: Object.fromEntries(gr.map((x) => [x.gate, x.tripped])), attention: [] };
+        rk = { total: Number(s.total), action: r.action, bucket: r.bucket, fit: s.written_fit, lens: s.lens, coverage: s.evidence_coverage_pct };
+      } else {
+        research = skipResearch ? null : await step(app.id, "research", traceId, (spanId) => runResearch({ applicationId: app.id, traceId, spanId }));
+        const gg = await step(app.id, "gates", traceId, (spanId) => runGates({ applicationId: app.id, traceId, spanId }));
+        const sc = await step(app.id, "score", traceId, (spanId) => runScore({ applicationId: app.id, traceId, spanId, sector: gg.sector, gates: gg.gates }));
+        rk = await step(app.id, "rank", traceId, async () => runRank(app.id));
+        g = gg;
+        if (gg.attention.length || sc.attention.length) console.log(`${app.company_name}: needs attention: ${[...gg.attention, ...sc.attention].join("; ")}`);
+      }
 
       const gateRows = must(await db.from("gates").select("gate, tripped, reasons").eq("application_id", app.id).order("gate"), "gates");
       lines.push(`## ${app.company_name}`, "");

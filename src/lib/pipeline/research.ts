@@ -4,13 +4,13 @@
 import { Firecrawl } from "firecrawl";
 import { z } from "zod";
 import { admin, must } from "../db/admin";
-import { callModel } from "../llm/gateway";
+import { callModel, QueuePausedError } from "../llm/gateway";
 import { loadPrompt, render } from "../llm/prompts";
 import { redact, unredact } from "../llm/pii";
 import { parseForm } from "../seed/parse-form";
 import { founderRefs } from "./extract-claims";
 import { verifyQuote } from "./verify-quote";
-import { hostOf, isPlaceholder, sourceType, windowAround } from "../research/sources";
+import { founderPageMatches, hostOf, isPlaceholder, isSocial, sourceType, windowAround } from "../research/sources";
 import { NO_COMPETITORS, planQueries, type QueryPlan } from "../research/queries";
 
 const MAX_SCRAPES = 6;
@@ -87,7 +87,7 @@ export async function runResearch(o: Ctx) {
   let findings = 0;
 
   const extractAndStore = async (p: QueryPlan, queryId: string, url: string, parentId: string | null): Promise<string | null> => {
-    if (seen.has(url) || scrapes >= MAX_SCRAPES || isPlaceholder(hostOf(url))) return null;
+    if (seen.has(url) || scrapes >= MAX_SCRAPES || isPlaceholder(hostOf(url)) || isSocial(url)) return null;
     seen.add(url);
     scrapes++;
     let doc;
@@ -100,30 +100,44 @@ export async function runResearch(o: Ctx) {
     const md = doc.markdown ?? "";
     if (!md.trim()) return null;
     const excerpt = redact(windowAround(md, p.needles.length ? p.needles : [app.company_name]), refs);
-    const links = (doc.links ?? []).filter((l: string) => !isPlaceholder(hostOf(l))).slice(0, 40);
-    const title = redact(doc.metadata?.title ?? "", refs);
+    // personal profiles and contact links never reach the model (non-negotiable 5)
+    const links = (doc.links ?? [])
+      .filter((l: string) => !isPlaceholder(hostOf(l)) && !/linkedin\.com\/in\/|^mailto:|^tel:|wa\.me\//i.test(l))
+      .slice(0, 40);
+    const title = doc.metadata?.title ?? "";
     const publisher = doc.metadata?.ogSiteName ?? hostOf(url);
     const subject = p.founder_id ? refs.find((r) => r.id === p.founder_id)?.token ?? "[F?]" : `the company (${app.one_liner ?? ""})`;
-    const user = render(tpl.user, {
-      purpose: p.purpose,
-      application: app.one_liner ?? "",
-      subject,
-      title,
-      publisher,
-      url: redact(url, refs),
-      links: links.join(" ") || "none",
-      excerpt,
-    });
-    const { data } = await callModel({
-      step: "research",
-      applicationId: o.applicationId,
-      prompt: { name: tpl.name, version: tpl.version, versionId: pv.id, system: tpl.system, user },
-      schema: Extract,
-      founders: refs,
-      traceId: o.traceId,
-      spanId: o.spanId,
-      validate: (out) => (out.is_match && (!out.quote || !verifyQuote(excerpt, out.quote).ok) ? "quote is missing or not found verbatim in the excerpt" : null),
-    });
+    // the whole prompt is redacted, not only the excerpt: titles, URLs and links can carry names and profiles
+    const user = redact(
+      render(tpl.user, { purpose: p.purpose, application: app.one_liner ?? "", subject, title, publisher, url, links: links.join(" ") || "none", excerpt }),
+      refs,
+    );
+    let data: z.infer<typeof Extract>;
+    try {
+      ({ data } = await callModel({
+        step: "research",
+        applicationId: o.applicationId,
+        prompt: { name: tpl.name, version: tpl.version, versionId: pv.id, system: tpl.system, user },
+        schema: Extract,
+        founders: refs,
+        traceId: o.traceId,
+        spanId: o.spanId,
+        validate: (out) => (out.is_match && (!out.quote || !verifyQuote(excerpt, out.quote).ok) ? "quote is missing or not found verbatim in the excerpt" : null),
+      }));
+    } catch (e) {
+      // one bad page must not sink the application: log it against the query and move on
+      if (e instanceof QueuePausedError) throw e; // the daily cost limit stops the run, it is not a bad page
+      await db.from("research_queries").update({ error: `page skipped (${url}): ${(e as Error).message.slice(0, 200)}` }).eq("id", queryId);
+      return null;
+    }
+    // hard rule in code: a founder page must also name the applicant's company, whatever the model concluded
+    if (p.founder_id && data.is_match && !founderPageMatches(md, app.company_name)) {
+      data = { ...data, is_match: false, mismatch_reason: `Same name, but the page never mentions ${app.company_name}; not treated as this founder.` };
+    }
+    // set-aside founder pages describe someone who never applied: keep only URL, title and a generic reason
+    if (p.founder_id && !data.is_match) {
+      data = { ...data, extracted_claim: null, mismatch_reason: "Same name, different person: the page does not match this founder's company or role." };
+    }
     const quote = data.is_match && data.quote ? unredact(data.quote, refs) : words(doc.metadata?.title ?? publisher, 20) || publisher;
     const row = must(
       await db

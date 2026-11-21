@@ -82,9 +82,6 @@ export function Rail({ account }: { account: Account }) {
       <NavList />
       <div className="mt-auto flex flex-col gap-2">
         <AccountBox a={account} />
-        <p className="px-2 text-[12px] text-ink-subtle">
-          <kbd className="font-mono">⌘K</kbd> jump · <kbd className="font-mono">/</kbd> search · <kbd className="font-mono">j</kbd>/<kbd className="font-mono">k</kbd> move
-        </p>
         <ThemeToggle />
       </div>
     </nav>

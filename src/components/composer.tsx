@@ -78,8 +78,8 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
   );
 }
 
-export function Composer({ applicationId, draft, suggested, gmail, signedIn, founderEmail }: {
-  applicationId: string; draft: ComposerDraft; suggested: Template; gmail: string | null; signedIn: boolean; founderEmail: string | null;
+export function Composer({ applicationId, draft, suggested, gmail, signedIn, founderEmail, sentSlots = [] }: {
+  applicationId: string; draft: ComposerDraft; suggested: Template; gmail: string | null; signedIn: boolean; founderEmail: string | null; sentSlots?: string[];
 }) {
   const current = draft?.versions.find((v) => v.id === draft.current_version_id) ?? null;
   const [subject, setSubject] = useState(current?.subject ?? "");
@@ -159,7 +159,7 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
         </label>
         <label className="block">
           <span className="eyebrow">Message</span>
-          <textarea value={body} onChange={(e) => onEdit(subject, e.target.value)} disabled={draft.status === "sent"} rows={12}
+          <textarea value={draft.status === "sent" && sentSlots.length === 2 ? body.split("{slot_1}").join(sentSlots[0]).split("{slot_2}").join(sentSlots[1]) : body} onChange={(e) => onEdit(subject, e.target.value)} disabled={draft.status === "sent"} rows={12}
             className="mt-1 w-full resize-y rounded-[6px] bg-surface-1 px-3 py-2 text-[13px] leading-relaxed shadow-[0_0_0_1px_var(--hairline)]" />
         </label>
 

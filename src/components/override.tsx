@@ -18,7 +18,7 @@ export function OverrideButton({ applicationId, criterion, name, current, canAct
   if (!open)
     return (
       <button type="button" disabled={!canAct} onClick={() => setOpen(true)} title={canAct ? `Change the ${name} score` : "Sign in with Google to override"}
-        className="press h-7 shrink-0 rounded-[6px] px-2 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-subtle">
+        className="press hit h-7 shrink-0 rounded-[6px] px-2 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink disabled:cursor-not-allowed disabled:text-ink-subtle">
         Override
       </button>
     );
@@ -56,7 +56,7 @@ export function OverrideButton({ applicationId, criterion, name, current, canAct
             const on = tags.includes(p);
             return (
               <button key={p} type="button" aria-pressed={on} onClick={() => setTags(on ? tags.filter((t) => t !== p) : [...tags, p])}
-                className={cx("press h-7 rounded-[6px] px-2 font-mono text-[11px]", on ? "bg-primary text-on-primary" : "bg-canvas text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:text-ink")}>
+                className={cx("press h-7 rounded-[6px] px-2 font-mono text-[11px]", on ? "bg-surface-3 text-ink shadow-[0_0_0_1px_var(--ink-subtle)]" : "bg-canvas text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:text-ink")}>
                 {p}
               </button>
             );

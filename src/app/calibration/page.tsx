@@ -32,7 +32,7 @@ export default async function CalibrationPage() {
     return (
       <div className="max-w-[720px]">
         <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Calibration</h1>
-        <div className="elev-1 mt-5 rounded-[10px] bg-canvas p-8 text-center">
+        <div className="elev-1 mt-5 rounded-[8px] bg-canvas p-8 text-center">
           <p className="font-medium">No backtest yet</p>
           <p className="mt-1 text-[13px] text-ink-muted">It scores the 12 deal memos blind and compares with what the fund decided. It takes about two minutes.</p>
           <div className="mt-3 flex justify-center"><RerunButton canAct={!!user} label="Run the backtest" /></div>
@@ -66,13 +66,13 @@ export default async function CalibrationPage() {
       </header>
 
       <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-        <div className="elev-1 rounded-[10px] bg-canvas p-5">
+        <div className="elev-1 rounded-[8px] bg-canvas p-5">
           <p className="eyebrow">Agreement with the fund</p>
           <p className="mt-1 flex items-baseline gap-2"><span className="num text-[32px] font-semibold tracking-[-0.6px]">{c.agree} of {c.total}</span><span className="num text-ink-subtle">{run.agreement_pct}%</span></p>
           {k && <p className="mt-3 text-[13px] text-ink-muted">Ranking: the backed company scored higher in <span className="num font-medium text-ink">{k.wins} of {k.pairs}</span> head-to-head pairs.</p>}
           <p className="mt-3 text-[12px] text-ink-subtle">“Take the call” counts as a yes. In-sample: the fund’s rules were written from these memos, so this flatters the system. Run {fmtDate(run.created_at)}{run.cost_usd != null ? ` · $${Number(run.cost_usd).toFixed(2)}` : ""}.</p>
         </div>
-        <div className="elev-1 overflow-x-auto rounded-[10px] bg-canvas p-5">
+        <div className="elev-1 overflow-x-auto rounded-[8px] bg-canvas p-5">
           <p className="eyebrow mb-2">Who said what</p>
           <table className="w-full text-[13px]">
             <thead><tr><th className="w-1/3" /><th className="pb-2 font-medium text-ink-muted">Fund invested</th><th className="pb-2 font-medium text-ink-muted">Fund passed</th></tr></thead>
@@ -86,7 +86,7 @@ export default async function CalibrationPage() {
 
       <section aria-labelledby="h-memos">
         <h2 id="h-memos" className="mb-2.5 text-[14px] font-semibold">Memo by memo, highest score first</h2>
-        <div className="elev-1 overflow-x-auto rounded-[10px] bg-canvas">
+        <div className="elev-1 overflow-x-auto rounded-[8px] bg-canvas">
           <table className="w-full text-left text-[13px]">
             <thead className="text-[12px] text-ink-subtle"><tr className="border-b border-hairline"><th className="px-4 py-2 font-medium">Company</th><th className="px-4 py-2 font-medium">Fund</th><th className="px-4 py-2 font-medium">System</th><th className="num px-4 py-2 text-right font-medium">Score</th><th className="px-4 py-2 font-medium">Verdict</th></tr></thead>
             <tbody>
@@ -109,7 +109,7 @@ export default async function CalibrationPage() {
         <section aria-labelledby="h-dis" className="space-y-2.5">
           <h2 id="h-dis" className="text-[14px] font-semibold">Each disagreement, argued both ways</h2>
           {disagreements.map((r) => (
-            <article key={r.memo_no} className="elev-1 rounded-[10px] bg-canvas p-4">
+            <article key={r.memo_no} className="elev-1 rounded-[8px] bg-canvas p-4">
               <h3 className="text-[14px] font-semibold">{r.company} <span className="font-normal text-ink-subtle">· fund {r.actual}, system says {ACTION[r.action].toLowerCase()}</span></h3>
               <div className="mt-2.5 grid gap-3 md:grid-cols-2">
                 <div className="rounded-[8px] bg-surface-1 p-3"><p className="eyebrow mb-1">The fund was wrong</p><p className="text-[13px] leading-relaxed text-ink-muted">{r.argument!.fund_was_wrong}</p></div>

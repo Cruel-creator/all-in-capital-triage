@@ -66,7 +66,7 @@ export function PortfolioEditor({ rows, canEdit }: { rows: PortfolioRow[]; canEd
         <button type="button" disabled={!canEdit} onClick={() => setEditing("new")} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">Add company</button>
       </div>
       {editing === "new" && <Form initial={toInput()} onDone={() => setEditing(null)} />}
-      <ul className="elev-1 divide-y divide-hairline rounded-[10px] bg-canvas">
+      <ul className="elev-1 divide-y divide-hairline rounded-[8px] bg-canvas">
         {rows.map((r) => (
           <li key={r.id} className="px-4 py-3">
             {editing === r.id ? (

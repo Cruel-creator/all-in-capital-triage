@@ -40,7 +40,7 @@ export function SettingsEditor({ rubricVersion, config, thesisVersion, rules, ca
     <div className="space-y-6">
       {!canEdit && <p className="rounded-[8px] bg-surface-1 px-3 py-2 text-[13px] text-ink-muted">{signedIn ? "Only partners can change these. You can read them." : "Sign in with Google to edit. You can read everything here."}</p>}
 
-      <section className="elev-1 rounded-[10px] bg-canvas p-5" aria-labelledby="h-rubric">
+      <section className="elev-1 rounded-[8px] bg-canvas p-5" aria-labelledby="h-rubric">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="h-rubric" className="text-[14px] font-semibold">Rubric <span className="font-normal text-ink-subtle">v{rubricVersion}</span></h2>
           <p className="text-[12px] text-ink-subtle">Weights and thresholds apply when you re-rank. Anchors apply the next time applications are scored.</p>
@@ -124,7 +124,7 @@ export function SettingsEditor({ rubricVersion, config, thesisVersion, rules, ca
         <div className="mt-1.5 space-y-1"><Status msg={msgR} /><Status msg={msgK} /></div>
       </section>
 
-      <section className="elev-1 rounded-[10px] bg-canvas p-5" aria-labelledby="h-rules">
+      <section className="elev-1 rounded-[8px] bg-canvas p-5" aria-labelledby="h-rules">
         <h2 id="h-rules" className="text-[14px] font-semibold">Fund rules <span className="font-normal text-ink-subtle">v{thesisVersion}</span></h2>
         <p className="mt-0.5 text-[12px] text-ink-subtle">How the fund actually decides, learned from the deal memos. The scorer applies these by ID.</p>
         <ol className="mt-3 space-y-2">

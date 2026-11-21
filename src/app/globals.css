@@ -155,24 +155,6 @@
 }
 
 @layer components {
-  /* React Bits SpotlightCard: a soft primary glow under the pointer */
-  .spotlight::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 200ms ease-out;
-    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--primary) 12%, transparent), transparent 70%);
-  }
-  .spotlight:hover::before { opacity: 1; }
-  /* card lift: shadow, not border; transitions only on what changes */
-  .lift {
-    transition-property: box-shadow, translate;
-    transition-duration: 180ms;
-    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
-  }
-  .lift:hover { translate: 0 -1px; box-shadow: 0 0 0 1px var(--hairline), 0 6px 16px rgb(15 16 17 / calc(var(--shadow-alpha) * 2)); }
   /* qualitative meter: 5 ticks instead of a number */
   .meter { display: inline-flex; gap: 2px; }
   .meter > i { width: 10px; height: 4px; border-radius: 2px; background: var(--surface-3); }

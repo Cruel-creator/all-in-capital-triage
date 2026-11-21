@@ -23,7 +23,7 @@ export function Badge({ tone = "neutral", children, title, className }: { tone?:
 export const GATE_NAMES: Record<string, string> = { G1: "Stage / cheque", G2: "Regulatory risk", G3: "Portfolio conflict", G4: "Integrity" };
 export const ACTION: Record<string, { label: string; tone: Tone }> = {
   take_call: { label: "Take the call", tone: "green" },
-  dig: { label: "Riya to dig", tone: "amber" },
+  dig: { label: "Dig first", tone: "amber" },
   pass: { label: "Pass", tone: "neutral" },
 };
 export const BUCKET: Record<string, string> = { clear: "Clear", flagged: "Flagged · needs Kushal", outside_mandate: "Outside mandate" };

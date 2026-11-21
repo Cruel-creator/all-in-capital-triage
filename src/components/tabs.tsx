@@ -17,7 +17,7 @@ export function Tabs({ items, label }: { items: { id: string; label: string; con
     refs.current[j]?.focus();
   };
   return (
-    <div className="elev-1 rounded-[10px] bg-canvas">
+    <div className="elev-1 rounded-[8px] bg-canvas">
       <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-hairline px-2">
         {items.map((t, i) => (
           <button
@@ -38,7 +38,7 @@ export function Tabs({ items, label }: { items: { id: string; label: string; con
         ))}
       </div>
       {items.map((t) => (
-        <div key={t.id} role="tabpanel" id={`${uid}-${t.id}-panel`} aria-labelledby={`${uid}-${t.id}`} hidden={active !== t.id} className="p-4">
+        <div key={t.id} role="tabpanel" id={`${uid}-${t.id}-panel`} aria-labelledby={`${uid}-${t.id}`} hidden={active !== t.id} tabIndex={0} className="p-4 focus-visible:outline-2 focus-visible:outline-primary">
           {t.content}
         </div>
       ))}

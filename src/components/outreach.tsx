@@ -123,7 +123,7 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
         {["advance", "hold", "pass"].map((x) => (
           <button key={x} type="button" disabled={!canDecide || pending} aria-pressed={choice === x} onClick={() => setChoice(x)}
             className={cx("press h-8 flex-1 rounded-[6px] text-[13px] capitalize shadow-[0_0_0_1px_var(--hairline)] disabled:cursor-not-allowed disabled:text-ink-subtle",
-              choice === x ? "bg-primary font-medium text-on-primary" : "bg-canvas text-ink-muted hover:text-ink")}>
+              choice === x ? "bg-surface-3 font-medium text-ink shadow-[0_0_0_1px_var(--ink-subtle)]" : "bg-canvas text-ink-muted hover:text-ink")}>
             {x}
           </button>
         ))}
@@ -144,7 +144,7 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} required placeholder="Why? (required)"
               className="w-full rounded-[6px] bg-canvas px-3 py-2 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
           </label>
-          <button type="submit" disabled={pending || !note.trim()} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
+          <button type="submit" disabled={pending || !note.trim()} className="press h-8 rounded-[6px] bg-canvas px-3 text-[13px] font-medium text-ink shadow-[0_0_0_1px_var(--ink-subtle)] hover:bg-surface-2 disabled:opacity-60">
             {pending ? "Saving…" : `Record ${choice}`}
           </button>
           {error && <p role="alert" className="text-[12px] text-red">{error}</p>}

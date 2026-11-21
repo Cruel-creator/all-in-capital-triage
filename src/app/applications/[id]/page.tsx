@@ -8,11 +8,10 @@ import { currentUser } from "@/lib/google/session";
 import { mailboxEmail } from "@/lib/google/client";
 import { ACTION, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, cx, fmtDate, sectorName } from "@/components/ui";
 import { Meter } from "@/components/pipeline-board";
-import { SpotlightCard } from "@/components/bits/spotlight-card";
-import { BlurText } from "@/components/bits/blur-text";
 import { Reveal } from "@/components/motion/reveal";
 import { Tabs } from "@/components/tabs";
 import { firstSentence, takeFor } from "@/lib/take";
+import { formatSlot } from "@/lib/google/slots";
 import { OverrideButton } from "@/components/override";
 import { personName, type AppliedCorrection } from "@/lib/corrections";
 import thesis from "../../../../config/thesis.v1.json";
@@ -20,6 +19,14 @@ import thesis from "../../../../config/thesis.v1.json";
 export const dynamic = "force-dynamic";
 
 const RULES: Record<string, string> = Object.fromEntries(thesis.revealed.rules.map((r) => [r.id, r.text]));
+const CHECK_LABEL: Record<string, string> = {
+  deck_vs_form: "Deck vs form", tam: "Market size (TAM)", sam: "Serviceable market (SAM)", som: "Obtainable market (SOM)",
+  blended_cac: "Blended CAC", payback: "Payback", mrr: "Monthly revenue", credentials: "Credentials", revenue: "Revenue", unit_count: "Unit count",
+};
+const STEP_LABEL: Record<string, string> = {
+  ingest: "Read files", extract_claims: "Extract claims", reconcile: "Check the numbers", research: "Web research",
+  gates: "Gates", score: "Score", rank: "Rank", draft_email: "Draft email",
+};
 const CRITS = ["C1", "C2", "C3", "C4", "C5", "C6"] as const;
 
 function Chips({ keys, claims }: { keys: string[]; claims: ClaimLite[] }) {
@@ -66,13 +73,13 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   const weak = d.crits.find((c) => c.criterion === take.weakest);
   const precedent = (rec?.precedents as { company?: string; outcome?: string; note?: string }[] | undefined)?.[0];
   return (
-    <section className="elev-1 overflow-hidden rounded-[12px] bg-canvas" aria-label="Our take">
+    <section className="elev-1 overflow-hidden rounded-[8px] bg-canvas" aria-label="Our take">
       <div className="grid gap-8 p-6 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <nav aria-label="Breadcrumb" className="mb-2 text-[12px] text-ink-subtle" data-reveal>
             <Link href="/" className="hover:text-ink">Pipeline</Link> <span aria-hidden>/</span> <span>{d.app.company_name}</span>
           </nav>
-          <BlurText text={d.app.company_name} className="text-[28px] font-semibold tracking-[-0.6px]" />
+          <h1 className="text-[24px] font-semibold tracking-[-0.4px]">{d.app.company_name}</h1>
           <p className="mt-1 text-ink-muted" data-reveal>{d.app.one_liner}</p>
           <div className="mt-3 flex flex-wrap items-center gap-1.5" data-reveal>
             <Badge>{sectorName(d.app.sector_inferred ?? d.app.sector_label)}</Badge>
@@ -141,7 +148,7 @@ function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail
   const memo = d.memos.find((m) => m.id === c.precedent_memo_id);
   const applied = (c.applied_corrections ?? []) as AppliedCorrection[];
   return (
-    <SpotlightCard data-reveal-scroll className="lift elev-1 rounded-[10px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
+    <article data-reveal-scroll className="elev-1 rounded-[8px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h3 id={`crit-${c.criterion}`} className="text-[14px] font-semibold">{CRIT_NAMES[c.criterion]}</h3>
         <div className="flex items-center gap-2">
@@ -163,7 +170,7 @@ function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail
         {applied.length > 0 && (
           <ul className="flex flex-wrap gap-1" aria-label="Past corrections the scorer was shown">
             {applied.map((a) => (
-              <li key={a.id} className="rounded-[6px] bg-primary/10 px-2 py-1 text-[12px] text-ink-muted" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
+              <li key={a.id} className="rounded-[6px] bg-surface-1 px-2 py-1 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)]" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
                 Applied correction from <span className="font-medium text-ink">{a.company}</span> ({a.by}): {a.reason}
               </li>
             ))}
@@ -174,7 +181,7 @@ function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail
           <OverrideButton applicationId={d.app.id} criterion={c.criterion} name={CRIT_NAMES[c.criterion]} current={Number(c.score)} canAct={canAct} />
         </div>
       </div>
-    </SpotlightCard>
+    </article>
   );
 }
 
@@ -235,7 +242,7 @@ function Contradictions({ d }: { d: Detail }) {
           <li key={f.id} className="text-[13px]">
             <div className="flex items-center gap-1.5">
               <Badge tone={f.severity === "red" ? "red" : f.severity === "warn" ? "amber" : "neutral"}>{f.severity === "red" ? "Red" : f.severity === "warn" ? "Check" : "Note"}</Badge>
-              <span className="font-medium">{String(f.check).replace(/_/g, " ")}</span>
+              <span className="font-medium">{CHECK_LABEL[f.check as string] ?? String(f.check).replace(/_/g, " ")}</span>
             </div>
             <p className="mt-1 text-ink-muted">{f.explanation}</p>
             <p className="num mt-0.5 font-mono text-[11px] text-ink-subtle">{f.formula}</p>
@@ -275,7 +282,7 @@ function Dossier({ d }: { d: Detail }) {
             <ul className="space-y-1.5 text-[12px] text-ink-muted">
               {found.map((f) => <li key={f.id}>{f.extracted_claim} <ClaimChip kind="finding" id={f.id} code={f.key} label={f.publisher ?? "web"} /></li>)}
             </ul>
-          ) : <p className="text-[12px] text-ink-subtle">Nothing found to confirm or contradict these. The seed applications use placeholder (.example) sites and profiles.</p>}
+          ) : <p className="text-[12px] text-ink-subtle">Nothing found online to confirm or contradict these.</p>}
           {sameName.length > 0 && <p className="mt-1.5 text-[12px] text-ink-subtle">{sameName.length} result(s) set aside: same name, different company or person.</p>}
         </div>
       </div>
@@ -324,7 +331,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
   return (
     <Reveal className="space-y-6">
       {d.app.status === "needs_attention" && (
-        <div role="alert" className="rounded-[10px] bg-amber-bg px-4 py-3 text-[13px] text-amber" data-reveal>
+        <div role="alert" className="rounded-[8px] bg-amber-bg px-4 py-3 text-[13px] text-amber" data-reveal>
           <p className="font-medium">Needs a look</p>
           <p>{d.app.status_reason}</p>
         </div>
@@ -334,7 +341,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
         <section className="space-y-3" aria-labelledby="h-crit">
           <h2 id="h-crit" className="text-[14px] font-semibold" data-reveal>How it reads, area by area</h2>
           {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} canAct={!!user} />) : (
-            <div className="elev-1 rounded-[10px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
+            <div className="elev-1 rounded-[8px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
         </section>
         <section className="space-y-3" aria-labelledby="h-next">
@@ -347,6 +354,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
               gmail={gmail}
               signedIn={!!user}
               founderEmail={d.founderEmail}
+              sentSlots={((d.threads as ThreadRow[]).find((t) => t.context.offered?.length === 2)?.context.offered ?? []).map(formatSlot)}
             />
           </div>
           <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
@@ -366,11 +374,11 @@ export default async function ApplicationPage({ params, searchParams }: { params
                 { id: "gaps", label: "What we couldn’t find", content: <CouldntFind d={d} /> },
                 { id: "timeline", label: "Timeline", content: <Timeline d={d} /> },
                 {
-                  id: "run", label: "Run", content: (
+                  id: "run", label: "Run log", content: (
                     <ul className="space-y-1 text-[12px] text-ink-muted">
                       {d.jobs.map((j, i) => (
                         <li key={i} className="flex items-center justify-between gap-2">
-                          <span className="capitalize">{String(j.step).replace("_", " ")} · {j.status}{j.last_error ? `: ${j.last_error}` : ""}</span>
+                          <span className="capitalize">{STEP_LABEL[j.step as string] ?? String(j.step).replace(/_/g, " ")} · {j.status}{j.last_error ? `: ${j.last_error}` : ""}</span>
                           {j.langfuse_trace_id && i === 0 && (
                             <a className="text-primary underline" target="_blank" rel="noreferrer" href={`${process.env.LANGFUSE_HOST ?? "https://cloud.langfuse.com"}/trace/${j.langfuse_trace_id}`}>Langfuse trace</a>
                           )}

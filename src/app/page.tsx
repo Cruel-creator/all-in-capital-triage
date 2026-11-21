@@ -1,6 +1,5 @@
 import { loadPipeline } from "@/lib/data/pipeline";
 import { PipelineBoard } from "@/components/pipeline-board";
-import { BlurText } from "@/components/bits/blur-text";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +22,10 @@ export default async function PipelinePage() {
 
   return (
     <div>
-      <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Pipeline</h1>
-          <BlurText as="p" text={headline(call, kushal, dig)} className="mt-0.5 text-[14px] text-ink-muted" delay={0.04} />
+          <p className="mt-0.5 text-[14px] text-ink-muted">{headline(call, kushal, dig)}</p>
         </div>
         <p className="text-[12px] text-ink-subtle">{today} · Every line cites its source. Nothing moves without Kushal.</p>
       </header>

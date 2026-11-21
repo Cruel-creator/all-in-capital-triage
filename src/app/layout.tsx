@@ -19,7 +19,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [rows, user, gmail] = await Promise.all([loadPipeline().catch(() => []), currentUser(), mailboxEmail().catch(() => null)]);
   const account = { user: user?.email ?? null, gmail, configured: googleConfigured() };
   const items = [
-    { label: "Pipeline", href: "/" },
+    { label: "Pipeline", href: "/", hint: "screen" },
+    { label: "Calibration", href: "/calibration", hint: "screen" },
+    { label: "Corrections", href: "/corrections", hint: "screen" },
+    { label: "Portfolio", href: "/portfolio", hint: "screen" },
+    { label: "Settings", href: "/settings", hint: "screen" },
     ...rows.map((r) => ({ label: r.company, hint: r.action ? ACTION[r.action].label : r.status, href: `/applications/${r.id}` })),
   ];
   return (
@@ -35,7 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="flex">
             <Rail account={account} />
             <div className="min-w-0 flex-1">
-              <MobileBar />
+              <MobileBar account={account} />
               <main id="main" className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
                 {children}
               </main>

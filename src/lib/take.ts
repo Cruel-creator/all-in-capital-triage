@@ -18,7 +18,9 @@ export function firstSentence(text: string | null | undefined, max = 160): strin
   if (!text) return "";
   const clean = text.replace(/\s*\[[^\]]*\]/g, "").replace(/\s+/g, " ").trim();
   const s = clean.match(/^.+?[.!?](?=\s|$)/)?.[0] ?? clean;
-  return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), max * 0.6)).replace(/[\s,;:]+$/, "")}…`; // stop at a word boundary
 }
 
 export type TakeInput = {

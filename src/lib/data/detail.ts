@@ -25,6 +25,10 @@ export async function loadDetail(id: string) {
     db.from("decisions").select("decision, note, created_at").eq("application_id", id).order("created_at", { ascending: false }),
     db.from("jobs").select("step, status, last_error, langfuse_trace_id, finished_at").eq("application_id", id).order("created_at", { ascending: false }).limit(8),
   ]);
+  const draftRow = (await db.from("email_drafts").select("id, template, status, current_version_id").eq("application_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data;
+  const versions = draftRow
+    ? must(await db.from("email_versions").select("id, n, subject, body, origin, redo_chip, redo_note, created_at").eq("draft_id", draftRow.id).order("n"), "versions")
+    : [];
   const findingRows = must(findings, "findings");
   const matched = findingRows.filter((f) => f.is_match);
   const claimList: ClaimLite[] = [
@@ -45,6 +49,7 @@ export async function loadDetail(id: string) {
     findings: findingRows.map((f) => ({ ...f, key: f.is_match ? `r${String(matched.indexOf(f) + 1).padStart(2, "0")}` : "" })) as FindingLite[],
     memos: must(memos, "memos"),
     decisions: must(decisions, "decisions"),
+    draft: draftRow ? { ...draftRow, versions } : null,
     jobs: must(jobs, "jobs"),
   };
 }

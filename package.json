@@ -16,7 +16,8 @@
     "check:keys": "tsx scripts/check-keys.ts",
     "embed": "tsx scripts/embed.ts",
     "check:contrast": "tsx scripts/check-contrast.ts",
-    "pipeline": "tsx scripts/run-pipeline.ts"
+    "pipeline": "tsx scripts/run-pipeline.ts",
+    "draft": "tsx scripts/draft.ts"
   },
   "dependencies": {
     "@langfuse/otel": "^6.1.1",

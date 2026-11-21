@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadDetail, type ClaimLite, type Detail } from "@/lib/data/detail";
 import { ClaimChip } from "@/components/source-drawer";
+import { Composer, type ComposerDraft } from "@/components/composer";
 import { ACTION, BUCKET, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, Score, ScoreBar, cx, fmtDate, sectorName } from "@/components/ui";
 import thesis from "../../../../config/thesis.v1.json";
 
@@ -332,7 +333,13 @@ export default async function ApplicationPage({ params, searchParams }: { params
           )}
         </div>
         <div className="space-y-3">
-          <h2 className="eyebrow">Evidence</h2>
+          <h2 className="eyebrow">Email and evidence</h2>
+          <Composer
+            applicationId={d.app.id}
+            draft={d.draft as ComposerDraft}
+            suggested={rec?.action === "take_call" ? "invite" : rec?.action === "dig" ? "dig" : "pass"}
+            gmailConnected={false}
+          />
           {rec && (rec.dig_questions as string[]).length > 0 && (
             <Panel title={rec.action === "dig" ? "Questions for Riya to dig into" : "Questions for the call"}>
               <ol className="list-decimal space-y-1 pl-4 text-[13px] text-ink-muted">{(rec.dig_questions as string[]).map((q, i) => <li key={i}>{q}</li>)}</ol>

@@ -5,14 +5,21 @@ config({ path: ".env.local", quiet: true });
 import { admin, must } from "../src/lib/db/admin";
 import { syncApplication } from "../src/lib/google/outreach";
 
-const apps = must(await admin().from("threads").select("application_id").in("state", ["sent", "followed_up", "counter_proposed"]), "threads");
-const ids = [...new Set(apps.map((a) => a.application_id as string))];
-for (const id of ids) {
-  try {
-    const r = await syncApplication(id);
-    console.log(id, r.length ? r.join(", ") : "nothing new");
-  } catch (e) {
-    console.error(id, (e as Error).message);
+async function main() {
+  const apps = must(await admin().from("threads").select("application_id").in("state", ["sent", "followed_up", "counter_proposed"]), "threads");
+  const ids = [...new Set(apps.map((a) => a.application_id as string))];
+  for (const id of ids) {
+    try {
+      const r = await syncApplication(id);
+      console.log(id, r.length ? r.join(", ") : "nothing new");
+    } catch (e) {
+      console.error(id, (e as Error).message);
+    }
   }
+  console.log(`Checked ${ids.length} application(s).`);
 }
-console.log(`Checked ${ids.length} application(s).`);
+
+main().catch((e) => {
+  console.error((e as Error).message);
+  process.exitCode = 1;
+});

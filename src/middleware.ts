@@ -1,9 +1,10 @@
 // Sign-in gate. In production (or with REQUIRE_SIGNIN=1) every page and API route needs a valid session cookie,
-// except the Google sign-in routes and the sign-in page. Verifies the same HMAC as src/lib/google/client.ts, using
-// Web Crypto because middleware runs on the edge runtime. Locally it is off: the app is only reachable from this machine.
+// except the Google sign-in routes, the sign-in page and the cron endpoint (which checks its own CRON_SECRET).
+// Verifies the same HMAC as src/lib/google/client.ts, using Web Crypto because middleware runs on the edge runtime.
+// Locally it is off: the app is only reachable from this machine.
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = [/^\/api\/google\//, /^\/signin$/, /^\/_next\//, /^\/favicon/];
+const PUBLIC = [/^\/api\/google\//, /^\/api\/cron\//, /^\/signin$/, /^\/_next\//, /^\/favicon/];
 const b64url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 async function valid(token: string | undefined, secret: string | undefined): Promise<boolean> {

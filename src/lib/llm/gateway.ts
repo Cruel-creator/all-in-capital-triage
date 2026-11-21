@@ -128,8 +128,52 @@ async function portkey(system: string, user: string, temperature: number, traceI
   };
 }
 
+/** Production route when no Portkey gateway is reachable (e.g. on Vercel): OpenRouter directly, with the same
+ *  policy as the Portkey config above: 3 attempts on 429/5xx with backoff, then the fallback model. The PII check,
+ *  cost guard, llm_calls row and Langfuse generation all run above this function, so they are unchanged. */
+export const useDirectRouter = () =>
+  process.env.LLM_ROUTER === "openrouter" || (!process.env.PORTKEY_BASE_URL && !process.env.PORTKEY_API_KEY && !!process.env.OPENROUTER_API_KEY);
+
+async function openrouterDirect(system: string, user: string, temperature: number): Promise<RawResult> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) throw new Error("Set OPENROUTER_API_KEY");
+  const models = [process.env.LLM_PRIMARY_MODEL, process.env.LLM_FALLBACK_MODEL].filter((m): m is string => !!m);
+  if (!models.length) throw new Error("Set LLM_PRIMARY_MODEL");
+  let retries = 0;
+  let last = "";
+  for (const [i, model] of models.entries()) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "system", content: system }, { role: "user", content: user }],
+          temperature,
+          response_format: { type: "json_object" },
+          reasoning: { effort: process.env.LLM_REASONING_EFFORT ?? "low" },
+        }),
+      }).catch((e: Error) => ({ ok: false, status: 0, text: async () => e.message, headers: new Headers() }) as unknown as Response);
+      const body = await res.text();
+      if (res.ok) {
+        const json = JSON.parse(body);
+        return {
+          text: json.choices?.[0]?.message?.content ?? "", model: json.model ?? model,
+          inTok: json.usage?.prompt_tokens ?? 0, outTok: json.usage?.completion_tokens ?? 0,
+          requestId: res.headers.get("x-request-id") ?? json.id ?? null, fellBack: i > 0, retries,
+        };
+      }
+      last = `OpenRouter ${res.status}: ${body.slice(0, 300)}`;
+      if (![0, 429, 500, 502, 503, 504].includes(res.status)) break; // not retryable: try the fallback model
+      retries++;
+      if (attempt < 3) await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
+    }
+  }
+  throw new Error(last || "OpenRouter call failed");
+}
+
 /**
- * Embeddings through the same gateway (Portkey → provider), with the same PII guard and cost row.
+ *Embeddings through the same gateway (Portkey → provider), with the same PII guard and cost row.
  * Returns one vector per input, in order.
  */
 export async function embed(o: { step: string; inputs: string[]; applicationId?: string | null; founders?: FounderRef[] }): Promise<number[][]> {
@@ -196,7 +240,7 @@ export async function callModel<T>(o: CallOpts<T>): Promise<{ data: T; callId: s
     let parsed: T | null = null;
     let error: string | null = null;
     try {
-      raw = await portkey(o.prompt.system, user, o.temperature ?? 0, o.traceId);
+      raw = useDirectRouter() ? await openrouterDirect(o.prompt.system, user, o.temperature ?? 0) : await portkey(o.prompt.system, user, o.temperature ?? 0, o.traceId);
       const r = o.schema.safeParse(parseJson(raw.text));
       if (!r.success) error = `schema: ${r.error.issues.slice(0, 5).map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`;
       else {

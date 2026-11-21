@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { admin, must } from "@/lib/db/admin";
 import { currentUser } from "@/lib/google/session";
+import { processBatch } from "@/lib/worker";
 
 async function partner(): Promise<{ error: string } | { email: string }> {
   const u = await currentUser();
@@ -21,6 +22,21 @@ export async function saveLimits(dailyUsd: number, alertEmail: string, maxInFlig
   must(await admin().from("cost_limits").update({ daily_usd: Math.round(dailyUsd * 100) / 100, alert_email: email || null, max_in_flight: maxInFlight }).eq("id", 1), "limits");
   revalidatePath("/ops");
   return { ok: true };
+}
+
+/** Process one queued application now (partners). Same rules as the scheduled run. */
+export async function runQueueNow() {
+  const who = await partner();
+  if ("error" in who) return who;
+  try {
+    const r = await processBatch({ max: 1, budgetMs: 240_000 });
+    revalidatePath("/ops");
+    revalidatePath("/");
+    return { ok: true, ran: r.ran, paused: r.paused, waiting: r.waiting };
+  } catch (e) {
+    console.error("run now failed:", (e as Error).message);
+    return { error: "The run failed. Check Cost & ops for the reason, then try again." };
+  }
 }
 
 /** Resume after a pause. If today's spend is still over the limit the next model call pauses it again. */

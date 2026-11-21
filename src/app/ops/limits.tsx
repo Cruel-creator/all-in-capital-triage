@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { resumeQueue, saveLimits } from "./actions";
+import { resumeQueue, runQueueNow, saveLimits } from "./actions";
 
 export function Limits({ dailyUsd, alertEmail, maxInFlight, paused, canEdit }: { dailyUsd: number; alertEmail: string | null; maxInFlight: number; paused: boolean; canEdit: boolean }) {
   const [daily, setDaily] = useState(dailyUsd);
@@ -37,6 +37,12 @@ export function Limits({ dailyUsd, alertEmail, maxInFlight, paused, canEdit }: {
             Resume the queue
           </button>
         )}
+        <button type="button" disabled={!canEdit || pending || paused} onClick={() => start(async () => {
+          const r = await runQueueNow();
+          setMsg("error" in r ? { ok: false, text: r.error } : { ok: true, text: r.ran ? `Ran ${r.ran} application. ${r.waiting} still waiting.` : "Nothing was waiting." });
+        })} className="press h-8 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:cursor-not-allowed disabled:text-ink-subtle">
+          {pending ? "Working…" : "Run one now"}
+        </button>
         {!canEdit && <span className="text-[12px] text-ink-subtle">Partners can change these.</span>}
         {msg && <span role={msg.ok ? "status" : "alert"} className={msg.ok ? "text-[12px] text-green" : "text-[12px] text-red"}>{msg.text}</span>}
       </div>

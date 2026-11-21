@@ -5,7 +5,8 @@ import { z } from "zod";
 import { admin, must } from "../db/admin";
 import { callModel, ModelOutputError } from "../llm/gateway";
 import { render } from "../llm/prompts";
-import { memoPassages, similarCorrections } from "../retrieval";
+import { memoPassages } from "../retrieval";
+import { correctionsFor, recordApplied, type AppliedCorrection } from "../corrections";
 import { CRITERIA, MISSING, confidenceOf, lensFor, type Criterion } from "../scoring/rank";
 import { loadContext, unknownIds, type AppContext } from "./context";
 import { prompt } from "./gates";
@@ -64,7 +65,7 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
     const def = rubric.criteria[c];
     const query = `${def.name}: ${def.covers} ${ctx.app.one_liner ?? ""}`;
     const passages = await memoPassages(query, 4, o.applicationId);
-    const corrections = await similarCorrections(`${c} ${def.name} ${o.sector} ${ctx.app.one_liner ?? ""}`, 3, o.applicationId);
+    const corrections = await correctionsFor(c, `${c} ${def.name} ${o.sector} ${ctx.app.one_liner ?? ""}`, o.applicationId);
     const user = render(tpl.user, {
       criterion: c,
       name: def.name,
@@ -80,7 +81,7 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
       research: ctx.researchSummary,
       findings: ctx.findingsText,
       memos: passages.map((p) => `- (p${p.page_no}) ${p.text}`).join("\n"),
-      corrections: corrections.length ? corrections.map((x) => `- ${x.criterion} ${x.old_score}→${x.new_score}: ${x.reason}`).join("\n") : "none yet",
+      corrections: corrections.length ? corrections.map((x) => `- On a similar company, a partner moved ${x.criterion} from ${x.from} to ${x.to}: ${x.reason}`).join("\n") : "none yet",
     });
     let out: Out | null = null;
     let error: string | null = null;
@@ -108,7 +109,7 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
         application_id: o.applicationId, criterion: c, score: MISSING.score, confidence: "low", status: "needs_attention",
         status_reason: `Model output failed validation twice: ${error}`.slice(0, 500),
         rationale: "Not scored: the model's output could not be validated against the evidence. Floor score applied until reviewed.",
-        gap: "Scoring failed validation", claims_used: [], claim_keys: [], rules_applied: [], rubric_version_id: rv.id, prompt_version_id: tpl.versionId,
+        gap: "Scoring failed validation", claims_used: [], claim_keys: [], rules_applied: [], rubric_version_id: rv.id, prompt_version_id: tpl.versionId, applied_corrections: [] as AppliedCorrection[],
       };
     }
     const keys = [...new Set([...out.claims_used, ...inlineIds(out.rationale)])].filter((k) => ctx.cites.has(k));
@@ -132,6 +133,7 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
       rubric_version_id: rv.id,
       prompt_version_id: tpl.versionId,
       llm_call_id: callId,
+      applied_corrections: corrections,
     };
   };
 
@@ -144,6 +146,10 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
     must(await db.from("criterion_scores").select("criterion").eq("application_id", o.applicationId).eq("is_current", true).eq("is_override", true), "overrides").map((r) => r.criterion),
   );
   must(await db.from("criterion_scores").update({ is_current: false }).eq("application_id", o.applicationId).eq("is_current", true).eq("is_override", false), "retire scores");
-  must(await db.from("criterion_scores").insert(rows.map((r) => ({ ...r, is_current: !overridden.has(r.criterion as string) }))), "insert scores");
+  const inserted = must(
+    await db.from("criterion_scores").insert(rows.map((r) => ({ ...r, is_current: !overridden.has(r.criterion as string) }))).select("id, application_id, applied_corrections"),
+    "insert scores",
+  );
+  await recordApplied(inserted as { id: string; application_id: string; applied_corrections: AppliedCorrection[] }[]);
   return { scored: rows.length, attention: rows.filter((r) => r.status === "needs_attention").map((r) => `${r.criterion}: ${r.status_reason}`) };
 }

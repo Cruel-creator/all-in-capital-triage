@@ -6,11 +6,11 @@ import { cx } from "./ui";
 
 const NAV: { href: string; label: string; phase?: number }[] = [
   { href: "/", label: "Pipeline" },
-  { href: "/calibration", label: "Calibration", phase: 4 },
-  { href: "/corrections", label: "Corrections", phase: 4 },
-  { href: "/portfolio", label: "Portfolio", phase: 4 },
+  { href: "/calibration", label: "Calibration" },
+  { href: "/corrections", label: "Corrections" },
+  { href: "/portfolio", label: "Portfolio" },
   { href: "/ops", label: "Cost & ops", phase: 5 },
-  { href: "/settings", label: "Settings", phase: 4 },
+  { href: "/settings", label: "Settings" },
 ];
 
 export type Account = { user: string | null; gmail: string | null; configured: boolean };

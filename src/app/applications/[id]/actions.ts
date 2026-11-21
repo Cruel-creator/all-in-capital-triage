@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { currentUser } from "@/lib/google/session";
 import { approvePending, dismissPending, offerSlots, sendDraft, syncApplication } from "@/lib/google/outreach";
 import { formatSlot, type Slot } from "@/lib/google/slots";
+import { overrideCriterion } from "@/lib/corrections";
+import { runRank } from "@/lib/pipeline/rank-step";
 import { admin, must } from "@/lib/db/admin";
 import { draftEmail, REDO_CHIPS, type RedoChip } from "@/lib/pipeline/draft-email";
 import { lintEmail, type Template } from "@/lib/email/lint";
@@ -127,6 +129,24 @@ export async function dismissPendingAction(applicationId: string, threadId: stri
   await dismissPending(threadId, user.email);
   page(applicationId);
   return { ok: true };
+}
+
+// ---------- corrections (build prompt §7) ----------
+
+export async function overrideScore(applicationId: string, criterion: string, newScore: number, reason: string, tags: string[], pattern: string | null) {
+  const user = await currentUser();
+  if (!user) return { error: "Sign in with Google first." };
+  if (!isId(applicationId) || !/^C[1-6]$/.test(criterion)) return { error: "Unknown criterion." };
+  try {
+    const r = await overrideCriterion({ applicationId, criterion, newScore: Number(newScore), reason, tags: tags.slice(0, 6).map((t) => t.trim().toLowerCase()).filter(Boolean), pattern, actor: user.email });
+    await runRank(applicationId); // totals and the recommendation follow the override
+    page(applicationId);
+    revalidatePath("/");
+    revalidatePath("/corrections");
+    return { ok: true, ...r };
+  } catch (e) {
+    return err(e);
+  }
 }
 
 // ---------- partner decision ----------

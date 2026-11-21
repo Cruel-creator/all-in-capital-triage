@@ -13,6 +13,8 @@ import { BlurText } from "@/components/bits/blur-text";
 import { Reveal } from "@/components/motion/reveal";
 import { Tabs } from "@/components/tabs";
 import { firstSentence, takeFor } from "@/lib/take";
+import { OverrideButton } from "@/components/override";
+import { personName, type AppliedCorrection } from "@/lib/corrections";
 import thesis from "../../../../config/thesis.v1.json";
 
 export const dynamic = "force-dynamic";
@@ -135,8 +137,9 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   );
 }
 
-function CriterionCard({ c, d }: { c: Detail["crits"][number]; d: Detail }) {
+function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail; canAct: boolean }) {
   const memo = d.memos.find((m) => m.id === c.precedent_memo_id);
+  const applied = (c.applied_corrections ?? []) as AppliedCorrection[];
   return (
     <SpotlightCard data-reveal-scroll className="lift elev-1 rounded-[10px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
       <header className="flex flex-wrap items-center justify-between gap-2">
@@ -152,9 +155,23 @@ function CriterionCard({ c, d }: { c: Detail["crits"][number]; d: Detail }) {
         {c.gap && <p className="text-[12px] text-amber">Couldn’t confirm: {c.gap}</p>}
         {c.question_for_call && <p className="text-[12px] text-ink-muted"><span className="font-medium text-ink">We’d ask:</span> {c.question_for_call}</p>}
         {memo && <p className="text-[12px] text-ink-subtle">Like {memo.company} ({memo.outcome}){c.precedent_note ? `: ${c.precedent_note}` : ""}</p>}
-        <div className="flex items-center justify-between gap-2 pt-1">
+        {c.is_override && (
+          <p className="rounded-[6px] bg-surface-1 px-2.5 py-1.5 text-[12px] text-ink-muted">
+            <span className="font-medium text-ink">Corrected by {personName(c.override_by_email)}:</span> {c.override_reason}
+          </p>
+        )}
+        {applied.length > 0 && (
+          <ul className="flex flex-wrap gap-1" aria-label="Past corrections the scorer was shown">
+            {applied.map((a) => (
+              <li key={a.id} className="rounded-[6px] bg-primary/10 px-2 py-1 text-[12px] text-ink-muted" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
+                Applied correction from <span className="font-medium text-ink">{a.company}</span> ({a.by}): {a.reason}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           <Chips keys={c.claim_keys as string[]} claims={d.claims} />
-          <button type="button" disabled title="Overrides with a required reason arrive in Phase 4" className="h-7 shrink-0 cursor-not-allowed rounded-[6px] px-2 text-[12px] text-ink-subtle shadow-[0_0_0_1px_var(--hairline)]">Override</button>
+          <OverrideButton applicationId={d.app.id} criterion={c.criterion} name={CRIT_NAMES[c.criterion]} current={Number(c.score)} canAct={canAct} />
         </div>
       </div>
     </SpotlightCard>
@@ -316,7 +333,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <section className="space-y-3" aria-labelledby="h-crit">
           <h2 id="h-crit" className="text-[14px] font-semibold" data-reveal>How it reads, area by area</h2>
-          {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} />) : (
+          {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} canAct={!!user} />) : (
             <div className="elev-1 rounded-[10px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
         </section>

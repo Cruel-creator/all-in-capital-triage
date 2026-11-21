@@ -6,7 +6,13 @@ import { Composer, type ComposerDraft } from "@/components/composer";
 import { DecisionBar, OutreachPanel, type ThreadRow } from "@/components/outreach";
 import { currentUser } from "@/lib/google/session";
 import { mailboxEmail } from "@/lib/google/client";
-import { ACTION, BUCKET, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, Score, ScoreBar, cx, fmtDate, sectorName } from "@/components/ui";
+import { ACTION, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, cx, fmtDate, sectorName } from "@/components/ui";
+import { Meter } from "@/components/pipeline-board";
+import { SpotlightCard } from "@/components/bits/spotlight-card";
+import { BlurText } from "@/components/bits/blur-text";
+import { Reveal } from "@/components/motion/reveal";
+import { Tabs } from "@/components/tabs";
+import { firstSentence, takeFor } from "@/lib/take";
 import thesis from "../../../../config/thesis.v1.json";
 
 export const dynamic = "force-dynamic";
@@ -53,92 +59,74 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   const crit = Object.fromEntries(d.crits.map((c) => [c.criterion, Number(c.score)]));
   const tripped = d.gates.filter((g) => g.tripped);
   const rec = d.rec;
-  const precedent = (rec?.precedents as { company?: string; outcome?: string; note?: string; criterion: string }[] | undefined)?.[0];
+  const take = takeFor({ action: rec?.action ?? null, bucket: rec?.bucket ?? null, gates: tripped.map((g) => g.gate), crit });
+  const strong = d.crits.find((c) => c.criterion === take.strongest);
+  const weak = d.crits.find((c) => c.criterion === take.weakest);
+  const precedent = (rec?.precedents as { company?: string; outcome?: string; note?: string }[] | undefined)?.[0];
   return (
-    <section className="elev-1 rounded-[8px] bg-canvas" aria-label="Summary">
-      <div className="grid gap-5 p-5 lg:grid-cols-[1.3fr_1fr]">
+    <section className="elev-1 overflow-hidden rounded-[12px] bg-canvas" aria-label="Our take">
+      <div className="grid gap-8 p-6 lg:grid-cols-[1.4fr_1fr]">
         <div>
-          <nav aria-label="Breadcrumb" className="mb-1 text-[12px] text-ink-subtle">
+          <nav aria-label="Breadcrumb" className="mb-2 text-[12px] text-ink-subtle" data-reveal>
             <Link href="/" className="hover:text-ink">Pipeline</Link> <span aria-hidden>/</span> <span>{d.app.company_name}</span>
           </nav>
-          <h1 className="text-[20px] tracking-[-0.3px]">{d.app.company_name}</h1>
-          <p className="mt-0.5 text-ink-muted">{d.app.one_liner}</p>
-          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <BlurText text={d.app.company_name} className="text-[28px] font-semibold tracking-[-0.6px]" />
+          <p className="mt-1 text-ink-muted" data-reveal>{d.app.one_liner}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5" data-reveal>
             <Badge>{sectorName(d.app.sector_inferred ?? d.app.sector_label)}</Badge>
             {d.app.sector_label_matches === false && <Badge tone="amber" title={d.app.sector_reason ?? undefined}>Labelled “{d.app.sector_label}”</Badge>}
-            {s?.written_fit && <Badge tone={FIT[s.written_fit].tone} title={s.written_fit_reason ?? undefined}>{FIT[s.written_fit].label}</Badge>}
             <Badge>{d.app.stage_label}</Badge>
             <Badge>{d.app.source === "warm_intro" ? "Warm intro" : "Application form"}</Badge>
-            <span className="num text-[12px] text-ink-subtle">Received {fmtDate(d.app.received_at)}</span>
+            {s?.written_fit && <Badge tone={FIT[s.written_fit].tone} title={s.written_fit_reason ?? undefined}>{FIT[s.written_fit].label}</Badge>}
           </div>
-          {d.app.source === "warm_intro" && d.app.intro_by && <p className="mt-1.5 text-[12px] text-ink-subtle">{d.app.intro_by}</p>}
+
+          <div className="mt-6" data-reveal>
+            <p className="eyebrow">Our take</p>
+            <p className="mt-1.5 text-[19px] font-medium leading-snug tracking-[-0.3px]">{take.verdict}</p>
+            <ul className="mt-3 space-y-2 text-[13px] leading-relaxed">
+              {strong && <li><span className="font-medium text-green">For it.</span> <span className="text-ink-muted">{firstSentence(strong.rationale, 220)}</span></li>}
+              {weak && <li><span className="font-medium text-amber">Against it.</span> <span className="text-ink-muted">{firstSentence(weak.rationale, 220)}</span></li>}
+              {rec?.what_would_change && rec.action !== "take_call" && <li><span className="font-medium text-ink">What would change our mind.</span> <span className="text-ink-muted">{firstSentence(rec.what_would_change, 200)}</span></li>}
+            </ul>
+            {precedent?.company && <p className="mt-3 text-[12px] text-ink-subtle">Reminds us of <span className="font-medium text-ink-muted">{precedent.company}</span> ({precedent.outcome}).</p>}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col gap-4" data-reveal>
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="eyebrow">{view === "written" ? "Written thesis view" : "Revealed thesis score"}</p>
-              <p className="flex items-baseline gap-1.5"><Score value={s ? Number(s.total) : null} className="text-[28px] tracking-[-0.6px]" /><span className="text-ink-subtle">/ 10</span></p>
+              <p className="eyebrow">{view === "written" ? "Against our written thesis" : "Against how we actually invest"}</p>
+              <div className="mt-2"><Meter score={s ? Number(s.total) : null} /></div>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
-              {rec && <Badge tone={ACTION[rec.action].tone}>{ACTION[rec.action].label}</Badge>}
-              {rec && <span className="text-[12px] text-ink-subtle">{BUCKET[rec.bucket]}</span>}
-            </div>
+            {rec && <Badge tone={ACTION[rec.action].tone}>{ACTION[rec.action].label}</Badge>}
           </div>
-          <ScoreBar crit={crit} weights={s?.weights_used ?? null} size="lg" />
-          <dl className="num grid grid-cols-3 gap-2 text-[12px]">
-            <div><dt className="text-ink-subtle">Founder (C1 C2 C4)</dt><dd className="font-medium">{s ? Number(s.founder_subtotal).toFixed(1) : "–"}</dd></div>
-            <div><dt className="text-ink-subtle">Market (C3 C5 C6)</dt><dd className="font-medium">{s ? Number(s.market_subtotal).toFixed(1) : "–"}</dd></div>
-            <div><dt className="text-ink-subtle">Evidence coverage</dt><dd className="font-medium">{s ? `${s.evidence_coverage_pct}%` : "–"}</dd></div>
-          </dl>
-          <div role="group" aria-label="Thesis view" className="flex self-start rounded-[6px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
+          <div role="group" aria-label="Thesis view" className="flex self-start rounded-[8px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
             {(["revealed", "written"] as const).map((v) => (
               <Link key={v} href={`?view=${v}`} replace scroll={false} aria-current={view === v ? "true" : undefined}
-                className={cx("press flex h-8 items-center rounded-[4px] px-2.5 text-[12px]", view === v ? "bg-canvas font-medium text-ink shadow-[0_0_0_1px_var(--hairline)]" : "text-ink-subtle hover:text-ink")}>
-                {v === "revealed" ? "Revealed thesis" : "Written thesis"}
+                className={cx("press flex h-8 items-center rounded-[6px] px-2.5 text-[12px]", view === v ? "bg-canvas font-medium text-ink shadow-[0_0_0_1px_var(--hairline)]" : "text-ink-subtle hover:text-ink")}>
+                {v === "revealed" ? "How we invest" : "What we say"}
               </Link>
             ))}
           </div>
-          {view === "written" && s?.written_fit_reason && <p className="text-[12px] text-ink-muted">{s.written_fit_reason} Weighted by the public framework (founder-market fit, why now), no sector lens.</p>}
-          {view === "revealed" && s?.lens && <p className="text-[12px] text-ink-subtle">Sector lens: {String(s.lens).replace("_", " ")} (its deciding criteria weighted ×1.5).</p>}
-        </div>
-      </div>
-
-      <div className="grid gap-4 border-t border-hairline px-5 py-4 lg:grid-cols-[1.3fr_1fr]">
-        <div>
-          <p className="eyebrow mb-2">Gates</p>
-          <ul className="grid gap-1.5 sm:grid-cols-2">
-            {(["G1", "G2", "G3", "G4"] as const).map((g) => {
-              const row = d.gates.find((x) => x.gate === g);
-              const reasons = (row?.reasons ?? []) as { text: string; claim_keys?: string[]; portfolio?: { company: string; source_url: string } }[];
-              return (
-                <li key={g} className={cx("rounded-[6px] px-3 py-2", row?.tripped ? "bg-red-bg" : "bg-surface-1")}>
-                  <p className={cx("flex items-center gap-1.5 text-[13px] font-medium", row?.tripped ? "text-red" : "text-ink-muted")}>
-                    {row?.tripped ? <GateIcon /> : <span aria-hidden>✓</span>} {g} {GATE_NAMES[g]} <span className="font-normal">{row?.tripped ? "tripped, routed to Kushal" : "clear"}</span>
-                  </p>
-                  {reasons.map((r, i) => (
-                    <div key={i} className="mt-1 space-y-1 text-[12px] text-ink">
-                      <p>{r.text}{r.portfolio && <> (<a className="text-primary underline" href={r.portfolio.source_url} target="_blank" rel="noreferrer">portfolio source</a>)</>}</p>
-                      <Chips keys={r.claim_keys ?? []} claims={d.claims} />
-                    </div>
-                  ))}
-                </li>
-              );
-            })}
-          </ul>
-          {tripped.length === 0 && <p className="mt-2 text-[12px] text-ink-subtle">No gate tripped.</p>}
-        </div>
-        <div className="flex flex-col gap-3">
-          {rec && (
-            <div>
-              <p className="eyebrow mb-1.5">What drove it</p>
-              <ul className="space-y-1 text-[12px] text-ink-muted">
-                {(rec.top_rules as string[]).map((r) => <li key={r}><span className="font-mono text-ink">{r}</span> {RULES[r]}</li>)}
-              </ul>
-              {precedent?.company && (
-                <p className="mt-1.5 text-[12px] text-ink-muted">Closest precedent: <span className="font-medium text-ink">{precedent.company}</span> ({precedent.outcome}){precedent.note ? `: ${precedent.note}` : ""}</p>
-              )}
-            </div>
+          {tripped.length === 0 ? (
+            <p className="flex items-center gap-1.5 text-[13px] text-ink-muted"><span aria-hidden className="text-green">✓</span> Clears every gate: stage, sector, conflicts, integrity.</p>
+          ) : (
+            <ul className="space-y-2">
+              {tripped.map((g) => {
+                const reasons = (g.reasons ?? []) as { text: string; claim_keys?: string[]; portfolio?: { company: string; source_url: string } }[];
+                return (
+                  <li key={g.gate} className="rounded-[8px] bg-red-bg px-3 py-2.5">
+                    <p className="flex items-center gap-1.5 text-[13px] font-medium text-red"><GateIcon /> {GATE_NAMES[g.gate]}: Kushal decides</p>
+                    {reasons.slice(0, 2).map((r, i) => (
+                      <div key={i} className="mt-1 space-y-1 text-[12px] text-ink">
+                        <p>{r.text}{r.portfolio && <> (<a className="text-primary underline" href={r.portfolio.source_url} target="_blank" rel="noreferrer">source</a>)</>}</p>
+                        <Chips keys={r.claim_keys ?? []} claims={d.claims} />
+                      </div>
+                    ))}
+                  </li>
+                );
+              })}
+            </ul>
           )}
           {decision}
         </div>
@@ -147,39 +135,32 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   );
 }
 
-function CriterionCard({ c, d, weight }: { c: Detail["crits"][number]; d: Detail; weight: number }) {
+function CriterionCard({ c, d }: { c: Detail["crits"][number]; d: Detail }) {
   const memo = d.memos.find((m) => m.id === c.precedent_memo_id);
   return (
-    <article className="elev-1 rounded-[8px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h3 id={`crit-${c.criterion}`} className="text-[14px]"><span className="font-mono text-ink-subtle">{c.criterion}</span> {CRIT_NAMES[c.criterion]}</h3>
-          <p className="num text-[12px] text-ink-subtle">Weight {Math.round(weight * 100)}%</p>
-        </div>
+    <SpotlightCard data-reveal-scroll className="lift elev-1 rounded-[10px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <h3 id={`crit-${c.criterion}`} className="text-[14px] font-semibold">{CRIT_NAMES[c.criterion]}</h3>
         <div className="flex items-center gap-2">
-          {c.status === "needs_attention" && <Badge tone="amber" title={c.status_reason ?? undefined}>Needs attention</Badge>}
-          <Badge tone={CONF[c.confidence].tone} title="Confidence: High = verified externally, Med = deck and form agree, Low = deck only or contradicted">{CONF[c.confidence].label}</Badge>
-          <Score value={Number(c.score)} className="text-[18px]" />
+          {c.status === "needs_attention" && <Badge tone="amber" title={c.status_reason ?? undefined}>Needs a look</Badge>}
+          <Badge tone={CONF[c.confidence].tone} title="How well this is backed: checked outside, deck and form agree, or the deck alone">{CONF[c.confidence].label}</Badge>
+          <Meter score={Number(c.score)} />
         </div>
       </header>
-      <div className="mt-2.5 space-y-2.5 text-[13px]">
+      <div className="mt-2.5 space-y-2 text-[13px]">
         <Cited text={c.rationale} claims={d.claims} />
-        {(c.rules_applied as string[]).length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {(c.rules_applied as string[]).map((r) => <Badge key={r} title={RULES[r]}><span className="font-mono">{r}</span></Badge>)}
-          </div>
-        )}
-        {memo && <p className="text-[12px] text-ink-muted">Closest precedent: <span className="font-medium text-ink">{memo.company}</span> ({memo.outcome}){c.precedent_note ? `: ${c.precedent_note}` : ""}</p>}
-        {c.gap && <p className="text-[12px] text-amber">Missing: {c.gap}</p>}
-        {c.question_for_call && <p className="text-[12px] text-ink-muted"><span className="font-medium text-ink">Ask:</span> {c.question_for_call}</p>}
+        {c.gap && <p className="text-[12px] text-amber">Couldn’t confirm: {c.gap}</p>}
+        {c.question_for_call && <p className="text-[12px] text-ink-muted"><span className="font-medium text-ink">We’d ask:</span> {c.question_for_call}</p>}
+        {memo && <p className="text-[12px] text-ink-subtle">Like {memo.company} ({memo.outcome}){c.precedent_note ? `: ${c.precedent_note}` : ""}</p>}
         <div className="flex items-center justify-between gap-2 pt-1">
           <Chips keys={c.claim_keys as string[]} claims={d.claims} />
           <button type="button" disabled title="Overrides with a required reason arrive in Phase 4" className="h-7 shrink-0 cursor-not-allowed rounded-[6px] px-2 text-[12px] text-ink-subtle shadow-[0_0_0_1px_var(--hairline)]">Override</button>
         </div>
       </div>
-    </article>
+    </SpotlightCard>
   );
 }
+
 
 function CouldntFind({ d }: { d: Detail }) {
   const q = d.queries;
@@ -188,7 +169,7 @@ function CouldntFind({ d }: { d: Detail }) {
   const matched = d.findings.filter((f) => f.is_match);
   const gaps = d.crits.filter((c) => c.gap);
   return (
-    <Panel title="What we couldn’t find">
+    <Panel bare title="What we couldn’t find">
       <p className="text-[13px] text-ink-muted">
         {notConfigured
           ? `Web research hasn’t run: the search key isn’t set up yet. ${q.length} searches are planned below. Until it runs, nothing here was checked against outside sources.`
@@ -230,7 +211,7 @@ function Contradictions({ d }: { d: Detail }) {
   const info = d.flags.filter((f) => f.severity === "info");
   const keyOf = new Map(d.claims.map((c) => [c.id, c.key]));
   return (
-    <Panel title="Contradictions and checks" right={<span className="num text-[12px] text-ink-subtle">{flags.length} to ask about</span>}>
+    <Panel bare title="Contradictions and checks" right={<span className="num text-[12px] text-ink-subtle">{flags.length} to ask about</span>}>
       {flags.length === 0 && <p className="text-[13px] text-ink-subtle">The deck, the form and the arithmetic agree.</p>}
       <ul className="space-y-3">
         {[...flags, ...info].map((f) => (
@@ -254,7 +235,7 @@ function Dossier({ d }: { d: Detail }) {
   const found = d.findings.filter((f) => f.is_match && f.extracted_claim);
   const sameName = d.findings.filter((f) => !f.is_match);
   return (
-    <Panel title="Founder dossier">
+    <Panel bare title="Founder dossier">
       <ul className="space-y-1">
         {d.founders.map((f) => (
           <li key={f.id} className="text-[13px] font-medium">{f.full_name} <span className="font-normal text-ink-subtle">{f.role_title}</span></li>
@@ -294,7 +275,7 @@ const EVENT: Record<string, string> = {
 function Timeline({ d }: { d: Detail }) {
   if (!d.timeline.length) return null;
   return (
-    <Panel title="Timeline">
+    <Panel bare title="Timeline">
       <ol className="space-y-1.5 text-[12px]">
         {d.timeline.map((e) => {
           const p = e.payload as { template?: string; by?: string; decision?: string };
@@ -317,65 +298,75 @@ export default async function ApplicationPage({ params, searchParams }: { params
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const d = await loadDetail(id);
   if (!d) notFound();
-  const s = d.scores.find((x) => x.view === view) ?? d.scores[0];
-  const weights = (s?.weights_used ?? {}) as Record<string, number>;
   const crits = CRITS.map((c) => d.crits.find((x) => x.criterion === c)).filter((x): x is Detail["crits"][number] => !!x);
   const rec = d.rec;
   const [user, gmail] = await Promise.all([currentUser(), mailboxEmail().catch(() => null)]);
+  const asks = rec && (rec.dig_questions as string[]).length > 0 ? (rec.dig_questions as string[]) : [];
+  const toAsk = d.flags.filter((f) => f.severity !== "info").length;
 
   return (
-    <div className="space-y-5">
+    <Reveal className="space-y-6">
       {d.app.status === "needs_attention" && (
-        <div role="alert" className="rounded-[8px] bg-amber-bg px-4 py-3 text-[13px] text-amber">
-          <p className="font-medium">Needs attention</p>
+        <div role="alert" className="rounded-[10px] bg-amber-bg px-4 py-3 text-[13px] text-amber" data-reveal>
+          <p className="font-medium">Needs a look</p>
           <p>{d.app.status_reason}</p>
         </div>
       )}
       <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
-      <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
-        <div className="space-y-3">
-          <h2 className="eyebrow">Criteria</h2>
-          {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} weight={weights[c.criterion] ?? 0} />) : (
-            <div className="elev-1 rounded-[8px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
+      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+        <section className="space-y-3" aria-labelledby="h-crit">
+          <h2 id="h-crit" className="text-[14px] font-semibold" data-reveal>How it reads, area by area</h2>
+          {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} />) : (
+            <div className="elev-1 rounded-[10px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
-        </div>
-        <div className="space-y-3">
-          <h2 className="eyebrow">Email and evidence</h2>
-          <Composer
-            applicationId={d.app.id}
-            draft={d.draft as ComposerDraft}
-            suggested={rec?.action === "take_call" ? "invite" : rec?.action === "dig" ? "dig" : "pass"}
-            gmail={gmail}
-            signedIn={!!user}
-            founderEmail={d.founderEmail}
-          />
+        </section>
+        <section className="space-y-3" aria-labelledby="h-next">
+          <h2 id="h-next" className="text-[14px] font-semibold" data-reveal>What happens next</h2>
+          <div data-reveal>
+            <Composer
+              applicationId={d.app.id}
+              draft={d.draft as ComposerDraft}
+              suggested={rec?.action === "take_call" ? "invite" : rec?.action === "dig" ? "dig" : "pass"}
+              gmail={gmail}
+              signedIn={!!user}
+              founderEmail={d.founderEmail}
+            />
+          </div>
           <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
-          {rec && (rec.dig_questions as string[]).length > 0 && (
-            <Panel title={rec.action === "dig" ? "Questions for Riya to dig into" : "Questions for the call"}>
-              <ol className="list-decimal space-y-1 pl-4 text-[13px] text-ink-muted">{(rec.dig_questions as string[]).map((q, i) => <li key={i}>{q}</li>)}</ol>
-            </Panel>
+          {asks.length > 0 && (
+            <div data-reveal-scroll>
+              <Panel title={rec?.action === "dig" ? "What we’d want to know first" : "What we’d cover on the call"}>
+                <ol className="list-decimal space-y-1.5 pl-4 text-[13px] text-ink-muted">{asks.map((q, i) => <li key={i}>{q}</li>)}</ol>
+              </Panel>
+            </div>
           )}
-          {rec?.action === "pass" && rec.what_would_change && (
-            <Panel title="What would change our view"><p className="text-[13px] text-ink-muted">{rec.what_would_change}</p></Panel>
-          )}
-          <Contradictions d={d} />
-          <Dossier d={d} />
-          <CouldntFind d={d} />
-          <Timeline d={d} />
-          <Panel title="Run">
-            <ul className="space-y-1 text-[12px] text-ink-muted">
-              {d.jobs.map((j, i) => (
-                <li key={i} className="flex items-center justify-between gap-2">
-                  <span className="capitalize">{String(j.step).replace("_", " ")} · {j.status}{j.last_error ? `: ${j.last_error}` : ""}</span>
-                  {j.langfuse_trace_id && i === 0 && (
-                    <a className="text-primary underline" target="_blank" rel="noreferrer" href={`${process.env.LANGFUSE_HOST ?? "https://cloud.langfuse.com"}/trace/${j.langfuse_trace_id}`}>Langfuse trace</a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Panel>
-        </div>
+          <div data-reveal-scroll>
+            <Tabs
+              label="Evidence"
+              items={[
+                { id: "checks", label: toAsk ? `Checks · ${toAsk} to ask` : "Checks", content: <Contradictions d={d} /> },
+                { id: "founders", label: "Founders", content: <Dossier d={d} /> },
+                { id: "gaps", label: "What we couldn’t find", content: <CouldntFind d={d} /> },
+                { id: "timeline", label: "Timeline", content: <Timeline d={d} /> },
+                {
+                  id: "run", label: "Run", content: (
+                    <ul className="space-y-1 text-[12px] text-ink-muted">
+                      {d.jobs.map((j, i) => (
+                        <li key={i} className="flex items-center justify-between gap-2">
+                          <span className="capitalize">{String(j.step).replace("_", " ")} · {j.status}{j.last_error ? `: ${j.last_error}` : ""}</span>
+                          {j.langfuse_trace_id && i === 0 && (
+                            <a className="text-primary underline" target="_blank" rel="noreferrer" href={`${process.env.LANGFUSE_HOST ?? "https://cloud.langfuse.com"}/trace/${j.langfuse_trace_id}`}>Langfuse trace</a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                },
+              ]}
+            />
+          </div>
+        </section>
       </div>
-    </div>
+    </Reveal>
   );
 }

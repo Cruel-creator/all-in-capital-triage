@@ -80,7 +80,14 @@ export function Score({ value, className }: { value: number | null; className?: 
   return <span className={cx("num font-semibold", className)}>{value === null ? "–" : value.toFixed(1)}</span>;
 }
 
-export function Panel({ title, children, className, right }: { title: string; children: ReactNode; className?: string; right?: ReactNode }) {
+export function Panel({ title, children, className, right, bare }: { title: string; children: ReactNode; className?: string; right?: ReactNode; bare?: boolean }) {
+  if (bare)
+    return (
+      <div className={className} aria-label={title}>
+        {right && <div className="mb-2 flex justify-end">{right}</div>}
+        {children}
+      </div>
+    );
   return (
     <section className={cx("elev-1 rounded-[8px] bg-canvas", className)} aria-label={title}>
       <header className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">

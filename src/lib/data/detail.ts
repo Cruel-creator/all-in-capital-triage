@@ -22,13 +22,20 @@ export async function loadDetail(id: string) {
     db.from("research_queries").select("id, purpose, query, engine, result_count, error, founder_id, ran_at").eq("application_id", id).order("ran_at"),
     db.from("research_findings").select("*").eq("application_id", id).order("retrieved_at"),
     db.from("memos").select("id, company, outcome"),
-    db.from("decisions").select("decision, note, created_at").eq("application_id", id).order("created_at", { ascending: false }),
+    db.from("decisions").select("decision, note, created_at, decided_by_email").eq("application_id", id).order("created_at", { ascending: false }),
     db.from("jobs").select("step, status, last_error, langfuse_trace_id, finished_at").eq("application_id", id).order("created_at", { ascending: false }).limit(8),
   ]);
   const draftRow = (await db.from("email_drafts").select("id, template, status, current_version_id").eq("application_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data;
   const versions = draftRow
     ? must(await db.from("email_versions").select("id, n, subject, body, origin, redo_chip, redo_note, created_at").eq("draft_id", draftRow.id).order("n"), "versions")
     : [];
+  const [threads, timeline, meetings, firstFounder] = await Promise.all([
+    db.from("threads").select("id, state, founder_email, follow_up_due_at, followed_up_at, pending_action, pending_payload, context, created_at").eq("application_id", id).order("created_at", { ascending: false }),
+    db.from("timeline_events").select("id, kind, payload, created_at").eq("application_id", id).order("created_at", { ascending: false }).limit(50),
+    db.from("meetings_booked").select("start_at, end_at, includes_aditya").eq("application_id", id).order("start_at"),
+    // shown only to prefill the composer's "To" field; never part of any model input
+    db.from("founders").select("email").eq("application_id", id).order("position").limit(1).maybeSingle(),
+  ]);
   const findingRows = must(findings, "findings");
   const matched = findingRows.filter((f) => f.is_match);
   const claimList: ClaimLite[] = [
@@ -51,6 +58,10 @@ export async function loadDetail(id: string) {
     decisions: must(decisions, "decisions"),
     draft: draftRow ? { ...draftRow, versions } : null,
     jobs: must(jobs, "jobs"),
+    threads: must(threads, "threads"),
+    timeline: must(timeline, "timeline"),
+    meetings: must(meetings, "meetings"),
+    founderEmail: (firstFounder.data?.email as string | null) ?? null,
   };
 }
 export type Detail = NonNullable<Awaited<ReturnType<typeof loadDetail>>>;

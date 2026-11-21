@@ -17,7 +17,8 @@
     "embed": "tsx scripts/embed.ts",
     "check:contrast": "tsx scripts/check-contrast.ts",
     "pipeline": "tsx scripts/run-pipeline.ts",
-    "draft": "tsx scripts/draft.ts"
+    "draft": "tsx scripts/draft.ts",
+    "sync:threads": "tsx scripts/sync-threads.ts"
   },
   "dependencies": {
     "@langfuse/otel": "^6.1.1",

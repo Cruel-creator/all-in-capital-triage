@@ -31,12 +31,26 @@ export function verifySession(token: string | undefined): string | null {
   if (!payload || !sig) return null;
   const want = createHmac("sha256", secret()).update(payload).digest("base64url");
   if (want.length !== sig.length || !timingSafeEqual(Buffer.from(want), Buffer.from(sig))) return null;
-  const { email, exp } = JSON.parse(Buffer.from(payload, "base64url").toString());
-  return exp > Date.now() ? email : null;
+  try {
+    const { email, exp } = JSON.parse(Buffer.from(payload, "base64url").toString());
+    return typeof email === "string" && exp > Date.now() ? email : null;
+  } catch {
+    return null;
+  }
 }
-/** Partners decide (Kushal, Aditya). PARTNER_EMAILS is a comma-separated list in .env.local. */
-export const isPartner = (email: string | null) =>
-  !!email && (process.env.PARTNER_EMAILS ?? "").toLowerCase().split(",").map((s) => s.trim()).includes(email.toLowerCase());
+/** Partners decide (Kushal, Aditya). PARTNER_EMAILS is a comma-separated list in .env.local.
+ *  Left blank (local testing), whoever is signed in may decide. */
+export function isPartner(email: string | null) {
+  if (!email) return false;
+  const list = (process.env.PARTNER_EMAILS ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+  return list.length === 0 || list.includes(email.toLowerCase());
+}
+
+/** The connected mailbox's address, without touching tokens. */
+export async function mailboxEmail(): Promise<string | null> {
+  const r = await admin().from("google_accounts").select("email").order("connected_at", { ascending: false }).limit(1).maybeSingle();
+  return r.data?.email ?? null;
+}
 
 export function authUrl(state: string) {
   const { id } = cfg();

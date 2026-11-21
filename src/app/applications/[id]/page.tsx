@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { loadDetail, type ClaimLite, type Detail } from "@/lib/data/detail";
 import { ClaimChip } from "@/components/source-drawer";
 import { Composer, type ComposerDraft } from "@/components/composer";
+import { DecisionBar, OutreachPanel, type ThreadRow } from "@/components/outreach";
+import { currentUser } from "@/lib/google/session";
+import { mailboxEmail } from "@/lib/google/client";
 import { ACTION, BUCKET, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, Score, ScoreBar, cx, fmtDate, sectorName } from "@/components/ui";
 import thesis from "../../../../config/thesis.v1.json";
 
@@ -45,7 +48,7 @@ function Cited({ text, claims }: { text: string; claims: ClaimLite[] }) {
   );
 }
 
-function Header({ d, view }: { d: Detail; view: "revealed" | "written" }) {
+function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"; decision: React.ReactNode }) {
   const s = d.scores.find((x) => x.view === view) ?? d.scores.find((x) => x.view === "revealed");
   const crit = Object.fromEntries(d.crits.map((c) => [c.criterion, Number(c.score)]));
   const tripped = d.gates.filter((g) => g.tripped);
@@ -137,32 +140,10 @@ function Header({ d, view }: { d: Detail; view: "revealed" | "written" }) {
               )}
             </div>
           )}
-          <DecisionBar decided={d.decisions[0]} />
+          {decision}
         </div>
       </div>
     </section>
-  );
-}
-
-function DecisionBar({ decided }: { decided?: { decision: string; note: string; created_at: string } }) {
-  return (
-    <div className="rounded-[6px] bg-surface-1 p-3">
-      <p className="eyebrow mb-2">Kushal’s decision</p>
-      {decided ? (
-        <p className="text-[13px]"><span className="font-medium capitalize">{decided.decision}</span>: {decided.note} <span className="num text-ink-subtle">({fmtDate(decided.created_at)})</span></p>
-      ) : (
-        <>
-          <div className="flex gap-1.5">
-            {["Advance", "Hold", "Pass"].map((x) => (
-              <button key={x} type="button" disabled aria-describedby="decision-why" className="h-8 flex-1 cursor-not-allowed rounded-[6px] bg-canvas text-[13px] text-ink-subtle shadow-[0_0_0_1px_var(--hairline)]">
-                {x}
-              </button>
-            ))}
-          </div>
-          <p id="decision-why" className="mt-1.5 text-[12px] text-ink-subtle">No decision yet. Partners decide here once sign-in is set up (Phase 3); every decision needs a note.</p>
-        </>
-      )}
-    </div>
   );
 }
 
@@ -304,6 +285,31 @@ function Dossier({ d }: { d: Detail }) {
   );
 }
 
+const EVENT: Record<string, string> = {
+  email_drafted: "Email drafted", email_redo: "Draft redone", email_sent: "Email sent", founder_replied: "Founder replied",
+  reply_needs_riya: "Reply needs Riya", follow_up_sent: "Follow-up sent", counter_proposal_sent: "New times offered",
+  call_booked: "Call booked", pending_dismissed: "Prepared reply dismissed", decided: "Partner decided",
+};
+
+function Timeline({ d }: { d: Detail }) {
+  if (!d.timeline.length) return null;
+  return (
+    <Panel title="Timeline">
+      <ol className="space-y-1.5 text-[12px]">
+        {d.timeline.map((e) => {
+          const p = e.payload as { template?: string; by?: string; decision?: string };
+          return (
+            <li key={e.id} className="flex justify-between gap-3">
+              <span className="text-ink">{EVENT[e.kind] ?? e.kind.replace(/_/g, " ")}{p.template ? ` (${p.template.replace("_", "-")})` : ""}{p.decision ? `: ${p.decision}` : ""}{p.by ? <span className="text-ink-subtle"> · {p.by}</span> : null}</span>
+              <span className="num shrink-0 text-ink-subtle">{fmtDate(e.created_at)}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </Panel>
+  );
+}
+
 export default async function ApplicationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string }> }) {
   const { id } = await params;
   const { view: v } = await searchParams;
@@ -315,6 +321,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
   const weights = (s?.weights_used ?? {}) as Record<string, number>;
   const crits = CRITS.map((c) => d.crits.find((x) => x.criterion === c)).filter((x): x is Detail["crits"][number] => !!x);
   const rec = d.rec;
+  const [user, gmail] = await Promise.all([currentUser(), mailboxEmail().catch(() => null)]);
 
   return (
     <div className="space-y-5">
@@ -324,7 +331,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
           <p>{d.app.status_reason}</p>
         </div>
       )}
-      <Header d={d} view={view} />
+      <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
         <div className="space-y-3">
           <h2 className="eyebrow">Criteria</h2>
@@ -338,8 +345,11 @@ export default async function ApplicationPage({ params, searchParams }: { params
             applicationId={d.app.id}
             draft={d.draft as ComposerDraft}
             suggested={rec?.action === "take_call" ? "invite" : rec?.action === "dig" ? "dig" : "pass"}
-            gmailConnected={false}
+            gmail={gmail}
+            signedIn={!!user}
+            founderEmail={d.founderEmail}
           />
+          <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
           {rec && (rec.dig_questions as string[]).length > 0 && (
             <Panel title={rec.action === "dig" ? "Questions for Riya to dig into" : "Questions for the call"}>
               <ol className="list-decimal space-y-1 pl-4 text-[13px] text-ink-muted">{(rec.dig_questions as string[]).map((q, i) => <li key={i}>{q}</li>)}</ol>
@@ -351,6 +361,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
           <Contradictions d={d} />
           <Dossier d={d} />
           <CouldntFind d={d} />
+          <Timeline d={d} />
           <Panel title="Run">
             <ul className="space-y-1 text-[12px] text-ink-muted">
               {d.jobs.map((j, i) => (

@@ -2,8 +2,10 @@
 // Email composer (build prompt §8): inline editing with autosave, Redo chips and note, version history with diff
 // and Restore, live lint. Sending is a separate explicit click and stays disabled until Gmail is connected.
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { generateDraft, redoDraft, restoreVersion, saveEdit } from "@/app/applications/[id]/actions";
+import { generateDraft, previewSlots, redoDraft, restoreVersion, saveEdit, sendDraftAction } from "@/app/applications/[id]/actions";
 import { lintEmail, type Template } from "@/lib/email/lint";
+import { wordDiff } from "@/lib/email/diff";
+import type { Slot } from "@/lib/google/slots";
 import { Badge, cx, fmtDate } from "./ui";
 
 export type ComposerVersion = { id: string; n: number; subject: string; body: string; origin: string; redo_chip: string | null; redo_note: string | null; created_at: string };
@@ -13,24 +15,72 @@ const CHIPS: [string, string][] = [["shorter", "Shorter"], ["warmer", "Warmer"],
 const TEMPLATE_LABEL: Record<string, string> = { invite: "Call invite", dig: "Dig", pass: "Pass", follow_up: "Follow-up" };
 const ORIGIN: Record<string, string> = { generated: "Drafted", redo: "Redo", riya_edit: "Edited", restore: "Restored" };
 
-/** Word-level diff (LCS) for the version history. Pure; small inputs. */
-function diff(a: string, b: string) {
-  const x = a.split(/(\s+)/), y = b.split(/(\s+)/);
-  const dp = Array.from({ length: x.length + 1 }, () => new Array<number>(y.length + 1).fill(0));
-  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) dp[i][j] = x[i] === y[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
-  const out: { t: string; k: "same" | "add" | "del" }[] = [];
-  let i = 0, j = 0;
-  while (i < x.length && j < y.length) {
-    if (x[i] === y[j]) (out.push({ t: x[i], k: "same" }), i++, j++);
-    else if (dp[i + 1][j] >= dp[i][j + 1]) out.push({ t: x[i++], k: "del" });
-    else out.push({ t: y[j++], k: "add" });
-  }
-  while (i < x.length) out.push({ t: x[i++], k: "del" });
-  while (j < y.length) out.push({ t: y[j++], k: "add" });
-  return out;
+const diff = wordDiff;
+
+/** To field, a confirmation that names the recipient and (for invites) the real calendar slots, then one click. */
+function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, saving }: {
+  applicationId: string; draft: NonNullable<ComposerDraft>; founderEmail: string | null; gmail: string | null; signedIn: boolean; lintOk: boolean; saving: boolean;
+}) {
+  const [to, setTo] = useState(founderEmail ?? "");
+  const [confirm, setConfirm] = useState<{ slots: Slot[]; labels: string[] } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const validTo = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to.trim());
+  const blocked = !gmail ? "Connect Gmail first (left sidebar)." : !signedIn ? "Sign in with Google first." : !lintOk ? "Fix the checks above first." : saving ? "Saving your edits…" : !validTo ? "Add the founder’s email address." : null;
+
+  if (draft.status === "sent") return <p className="text-[12px] text-ink-subtle">Sent from {gmail ?? "Gmail"}. Replies and follow-ups appear under Outreach.</p>;
+
+  const review = () =>
+    start(async () => {
+      setError(null);
+      if (draft.template !== "invite") return setConfirm({ slots: [], labels: [] });
+      const r = await previewSlots();
+      if ("error" in r) setError(r.error);
+      else setConfirm({ slots: r.slots, labels: r.labels });
+    });
+  const send = () =>
+    start(async () => {
+      setError(null);
+      const r = await sendDraftAction(applicationId, draft.id, to, confirm?.slots.length ? confirm.slots : undefined);
+      if ("error" in r && r.error) setError(r.error);
+      setConfirm(null);
+    });
+
+  return (
+    <div className="w-full space-y-2">
+      <label className="block">
+        <span className="eyebrow">To</span>
+        <input type="email" value={to} onChange={(e) => (setTo(e.target.value), setConfirm(null))} placeholder="founder@company.com" autoComplete="off"
+          className="mt-1 h-9 w-full rounded-[6px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+      </label>
+      {confirm ? (
+        <div className="rounded-[6px] bg-surface-1 p-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" role="group" aria-label="Confirm sending">
+          <p>Send this {TEMPLATE_LABEL[draft.template].toLowerCase()} to <span className="font-medium">{to.trim()}</span> from <span className="font-medium">{gmail}</span> now?</p>
+          {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, both free on your calendar.</p>}
+          <div className="mt-2 flex gap-1.5">
+            <button type="button" onClick={send} disabled={pending} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
+              {pending ? "Sending…" : "Send now"}
+            </button>
+            <button type="button" onClick={() => setConfirm(null)} disabled={pending} className="press h-8 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {blocked && <span className="text-[12px] text-ink-subtle">{blocked}</span>}
+          <button type="button" onClick={review} disabled={!!blocked || pending}
+            className="press h-9 rounded-[6px] bg-primary px-4 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">
+            {pending ? "Checking calendar…" : "Review and send"}
+          </button>
+        </div>
+      )}
+      {error && <p role="alert" className="text-[12px] text-red">{error}</p>}
+    </div>
+  );
 }
 
-export function Composer({ applicationId, draft, suggested, gmailConnected }: { applicationId: string; draft: ComposerDraft; suggested: Template; gmailConnected: boolean }) {
+export function Composer({ applicationId, draft, suggested, gmail, signedIn, founderEmail }: {
+  applicationId: string; draft: ComposerDraft; suggested: Template; gmail: string | null; signedIn: boolean; founderEmail: string | null;
+}) {
   const current = draft?.versions.find((v) => v.id === draft.current_version_id) ?? null;
   const [subject, setSubject] = useState(current?.subject ?? "");
   const [body, setBody] = useState(current?.body ?? "");
@@ -143,14 +193,8 @@ export function Composer({ applicationId, draft, suggested, gmailConnected }: { 
           <button type="button" onClick={() => setShowHistory((s) => !s)} aria-expanded={showHistory} className="press text-[12px] font-medium text-primary">
             Version history ({draft.versions.length})
           </button>
-          <div className="flex flex-col items-end">
-            <button type="button" disabled title={gmailConnected ? "Sending arrives with the Gmail step" : "Connect Riya's Gmail first"}
-              className="h-9 cursor-not-allowed rounded-[6px] bg-surface-2 px-4 text-[13px] font-medium text-ink-subtle">
-              Send from Gmail
-            </button>
-            <span className="mt-1 text-[11px] text-ink-subtle">{gmailConnected ? "Sending needs a click; nothing is sent automatically." : "Gmail isn’t connected yet."}</span>
-          </div>
         </div>
+        <SendBox applicationId={applicationId} draft={draft} founderEmail={founderEmail} gmail={gmail} signedIn={signedIn} lintOk={!!lint?.ok} saving={saved !== "saved"} />
 
         {showHistory && (
           <ol className="space-y-2">

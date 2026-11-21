@@ -1,6 +1,9 @@
 "use server";
-// Composer actions. None of these send email: sending is a separate, explicit action (Gmail, below in Phase 3).
+// Composer, outreach and decision actions. Sending, replying, booking and deciding each need a signed-in person's click.
 import { revalidatePath } from "next/cache";
+import { currentUser } from "@/lib/google/session";
+import { approvePending, dismissPending, offerSlots, sendDraft, syncApplication } from "@/lib/google/outreach";
+import { formatSlot, type Slot } from "@/lib/google/slots";
 import { admin, must } from "@/lib/db/admin";
 import { draftEmail, REDO_CHIPS, type RedoChip } from "@/lib/pipeline/draft-email";
 import { lintEmail, type Template } from "@/lib/email/lint";
@@ -60,5 +63,84 @@ export async function restoreVersion(applicationId: string, draftId: string, ver
   const v = must(await db.from("email_versions").insert({ draft_id: draftId, n: last.n + 1, subject: src.subject, body: src.body, origin: "restore", lint_report: src.lint_report }).select("id").single(), "restore");
   must(await db.from("email_drafts").update({ current_version_id: v.id }).eq("id", draftId), "current");
   revalidatePath(`/applications/${applicationId}`);
+  return { ok: true };
+}
+
+// ---------- Gmail and Calendar ----------
+
+const err = (e: unknown) => ({ error: (e as Error).message });
+const page = (id: string) => revalidatePath(`/applications/${id}`);
+
+/** The two slots an invite would offer right now (shown in the send confirmation). */
+export async function previewSlots(): Promise<{ error: string } | { ok: true; slots: Slot[]; labels: string[] }> {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
+  try {
+    const slots = await offerSlots();
+    return { ok: true, slots, labels: slots.map(formatSlot) };
+  } catch (e) {
+    return err(e);
+  }
+}
+
+export async function sendDraftAction(applicationId: string, draftId: string, to: string, slots?: Slot[]) {
+  const user = await currentUser();
+  if (!user) return { error: "Sign in with Google first." };
+  if (!isId(applicationId) || !isId(draftId)) return { error: "Unknown draft." };
+  try {
+    await sendDraft({ applicationId, draftId, to: to.trim(), slots, actor: user.email });
+    page(applicationId);
+    return { ok: true };
+  } catch (e) {
+    return err(e);
+  }
+}
+
+export async function checkReplies(applicationId: string) {
+  if (!(await currentUser())) return { error: "Sign in with Google first." };
+  if (!isId(applicationId)) return { error: "Unknown application." };
+  try {
+    const found = await syncApplication(applicationId);
+    page(applicationId);
+    return { ok: true, found };
+  } catch (e) {
+    return err(e);
+  }
+}
+
+export async function approvePendingAction(applicationId: string, threadId: string, body: string) {
+  const user = await currentUser();
+  if (!user) return { error: "Sign in with Google first." };
+  if (!isId(applicationId) || !isId(threadId)) return { error: "Unknown thread." };
+  try {
+    await approvePending(threadId, body, user.email);
+    page(applicationId);
+    return { ok: true };
+  } catch (e) {
+    return err(e);
+  }
+}
+
+export async function dismissPendingAction(applicationId: string, threadId: string) {
+  const user = await currentUser();
+  if (!user) return { error: "Sign in with Google first." };
+  if (!isId(applicationId) || !isId(threadId)) return { error: "Unknown thread." };
+  await dismissPending(threadId, user.email);
+  page(applicationId);
+  return { ok: true };
+}
+
+// ---------- partner decision ----------
+
+export async function decide(applicationId: string, decision: string, note: string) {
+  const user = await currentUser();
+  if (!user) return { error: "Sign in with Google first." };
+  if (!user.partner) return { error: "Only partners can decide. Add your email to PARTNER_EMAILS." };
+  if (!isId(applicationId) || !["advance", "hold", "pass"].includes(decision)) return { error: "Unknown decision." };
+  if (!note.trim()) return { error: "Add a note: every decision needs a reason." };
+  const db = admin();
+  must(await db.from("decisions").insert({ application_id: applicationId, decision, note: note.trim().slice(0, 2000), decided_by_email: user.email }), "decision");
+  await db.from("timeline_events").insert({ application_id: applicationId, kind: "decided", payload: { decision, by: user.email } });
+  page(applicationId);
+  revalidatePath("/");
   return { ok: true };
 }

@@ -35,9 +35,7 @@ export async function runRank(applicationId: string) {
   const action = actionOf(total, gates, scores, { call: rubric.recommendation.take_call.min_score, dig: rubric.recommendation.dig.min_score });
   const cov = coverage(scores);
 
-  must(await db.from("scores").delete().eq("application_id", applicationId), "clear scores");
-  must(
-    await db.from("scores").insert([
+  const scoreRows = [
       {
         application_id: applicationId, view: "revealed", total, founder_subtotal: weighted(scores, weights, FOUNDER), market_subtotal: weighted(scores, weights, MARKET),
         weights_used: weights, lens: lensKey, evidence_coverage_pct: cov, written_fit: fit, written_fit_reason: fitReason, rubric_version_id: rv.id,
@@ -47,18 +45,14 @@ export async function runRank(applicationId: string) {
         market_subtotal: weighted(scores, writtenWeights, MARKET), weights_used: writtenWeights, lens: null, evidence_coverage_pct: cov, written_fit: fit,
         written_fit_reason: fitReason, rubric_version_id: rv.id,
       },
-    ]),
-    "insert scores",
-  );
+  ];
 
   // weakest criteria first: the questions that would move the score most
   const byImpact = [...rows].sort((a, b) => weights[a.criterion as Criterion] * Number(a.score) - weights[b.criterion as Criterion] * Number(b.score));
   const precedents = rows
     .filter((r) => r.precedent_memo_id)
     .map((r) => ({ criterion: r.criterion, memo_id: r.precedent_memo_id, company: memos.find((m) => m.id === r.precedent_memo_id)?.company, outcome: memos.find((m) => m.id === r.precedent_memo_id)?.outcome, note: r.precedent_note }));
-  must(await db.from("recommendations").delete().eq("application_id", applicationId), "clear rec");
-  must(
-    await db.from("recommendations").insert({
+  const recRow = {
       application_id: applicationId,
       bucket,
       action,
@@ -66,9 +60,9 @@ export async function runRank(applicationId: string) {
       precedents,
       dig_questions: action === "pass" ? [] : byImpact.map((r) => r.question_for_call).filter(Boolean).slice(0, action === "dig" ? 3 : 2),
       what_would_change: action === "pass" ? byImpact.slice(0, 3).map((r) => r.gap ?? r.question_for_call).filter(Boolean).join(" ") || null : null,
-    }),
-    "insert rec",
-  );
+  };
+  // scores and the recommendation are replaced together, in one transaction
+  must(await db.rpc("replace_rank", { app: applicationId, score_rows: scoreRows, rec: recRow }), "replace rank");
 
   const attention = scores.filter((s) => s.needsAttention).map((s) => s.criterion);
   must(

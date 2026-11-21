@@ -25,13 +25,13 @@ Three independent reviewers read the code without seeing each other's notes: log
 | Portfolio edits and backtest runs open to any signed-in user | Partners only |
 | No security headers | Frame, sniffing, referrer, permissions, HSTS in production |
 | Raw DB errors from `/api/source` and the backtest | Generic messages; details logged on the server |
+| Score, rank and gate writes deleted then inserted; rubric/rules versioning deactivated then inserted (a crash in between left gaps) | Each replace is one database transaction (migrations 0011-0012); versioning is serialised so there is always exactly one active version |
+| G1 passed silently when a raise or post-money figure couldn't be read | The gap is named with the text it couldn't read and routed to Kushal |
 
 Tests added for each pure fix (114 passing).
 
 ## Needs a decision or larger change
 
-- **Transactions:** score, rank and gate writes delete then insert, and rubric/rules versioning deactivates then inserts. A crash in between leaves gaps. Move each into one database function (RPC).
-- **G1 with an unreadable amount** passes silently; it should name the gap.
 - **"To" address** is free text (the seed founders have no email). Once real founder emails exist, restrict sends to the address on file.
 - **Refresh tokens** are stored in plain text, protected by RLS with no policies. Consider Supabase Vault.
 - **Supabase dashboard:** confirm email sign-ups are off.

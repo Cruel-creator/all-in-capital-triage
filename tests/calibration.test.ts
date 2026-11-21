@@ -101,3 +101,14 @@ test("queue retries back off 30s, 2 min, 8 min", async () => {
   assert.deepEqual([1, 2, 3].map(backoffSeconds), [30, 120, 480]);
   assert.equal(MAX_ATTEMPTS, 3);
 });
+
+test("G1 names an unreadable raise amount instead of passing silently", async () => {
+  const { g1 } = await import("../src/lib/pipeline/gates");
+  const p = { allowed_stages: ["pre-seed", "seed"], max_raise_inr: 1e8, max_post_money_inr: 4e8, prior_institutional_pattern: "institutional" };
+  const clean = g1({ stage: "Pre-seed", raise: 2e7, postMoney: 1.2e8, existingInvestors: null, raiseRaw: "INR 2 Cr", postMoneyRaw: "INR 12 Cr" }, p);
+  assert.equal(clean.tripped, false);
+  const odd = g1({ stage: "Pre-seed", raise: null, postMoney: 1.2e8, existingInvestors: null, raiseRaw: "between two and three crore", postMoneyRaw: "INR 12 Cr" }, p);
+  assert.equal(odd.tripped, true);
+  assert.match(odd.reasons[0], /Couldn't read the raise amount/);
+  assert.equal(g1({ stage: "Pre-seed", raise: null, postMoney: null, existingInvestors: null }, p).tripped, false); // absent is not unreadable
+});

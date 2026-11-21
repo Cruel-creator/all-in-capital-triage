@@ -24,7 +24,7 @@ const words = (s: string, n = 25) => s.replace(/\s+/g, " ").trim().split(" ").sl
 
 /** G1: stage, round size, valuation, prior institutional money. Pure on its inputs; tested. */
 export function g1(
-  input: { stage: string | null; raise: number | null; postMoney: number | null; existingInvestors: string | null },
+  input: { stage: string | null; raise: number | null; postMoney: number | null; existingInvestors: string | null; raiseRaw?: string | null; postMoneyRaw?: string | null },
   p: { allowed_stages: string[]; max_raise_inr: number; max_post_money_inr: number; prior_institutional_pattern: string },
 ): { tripped: boolean; reasons: string[] } {
   const reasons: string[] = [];
@@ -32,6 +32,9 @@ export function g1(
   if (stage && !p.allowed_stages.some((s) => stage.includes(s.replace(/[\s-]/g, "")))) reasons.push(`Stage is "${input.stage}", not pre-seed or seed.`);
   if (input.raise !== null && input.raise > p.max_raise_inr) reasons.push(`Raising ₹${(input.raise / 1e7).toLocaleString("en-IN")} Cr, above a pre-seed round.`);
   if (input.postMoney !== null && input.postMoney > p.max_post_money_inr) reasons.push(`Post-money ₹${(input.postMoney / 1e7).toLocaleString("en-IN")} Cr is above a sensible pre-seed entry.`);
+  // a figure that is present but unreadable is a named gap, never a silent pass: route it to Kushal to confirm
+  if (input.raise === null && input.raiseRaw?.trim()) reasons.push(`Couldn't read the raise amount ("${input.raiseRaw.trim().slice(0, 60)}"), so the round size wasn't checked. Confirm it by hand.`);
+  if (input.postMoney === null && input.postMoneyRaw?.trim()) reasons.push(`Couldn't read the post-money valuation ("${input.postMoneyRaw.trim().slice(0, 60)}"), so the valuation wasn't checked. Confirm it by hand.`);
   if (input.existingInvestors && new RegExp(p.prior_institutional_pattern, "i").test(input.existingInvestors))
     reasons.push("Already has institutional investors, so this would not be the first institutional cheque.");
   return { tripped: reasons.length > 0, reasons };
@@ -88,13 +91,15 @@ export async function runGates(o: Ctx) {
       raise: raiseC?.raw_value ? parseAmount(raiseC.raw_value.replace(/^.*?(?=(?:INR|₹)?\s*\d)/i, "")) : null,
       postMoney: postC?.raw_value ? parseAmount(postC.raw_value.replace(/^.*?(?=(?:INR|₹)?\s*\d)/i, "")) : null,
       existingInvestors: form.fields["Existing investors"]?.value ?? null,
+      raiseRaw: raiseC?.raw_value ?? null,
+      postMoneyRaw: postC?.raw_value ?? null,
     },
     rubric.gates.G1.params,
   );
   results.G1 = {
     tripped: r1.tripped,
     reasons: r1.reasons.map((text) => {
-      const c = /Raising/.test(text) ? raiseC : /Post-money/.test(text) ? postC : null;
+      const c = /Raising|raise amount/.test(text) ? raiseC : /Post-money|post-money valuation/.test(text) ? postC : null;
       return c
         ? { text, claim_ids: [c.id], claim_keys: [c.claim_key] }
         : { text, claim_ids: [], claim_keys: [], source: fieldSource(/institutional/.test(text) ? "Existing investors" : "Stage (as selected)") };
@@ -179,17 +184,17 @@ export async function runGates(o: Ctx) {
     "sector",
   );
 
-  must(await db.from("gates").delete().eq("application_id", o.applicationId), "clear gates");
+  // one transaction: the old gate rows are never gone without the new ones in place
   must(
-    await db.from("gates").insert(
+    await db.rpc("replace_gates", { app: o.applicationId, gate_rows:
       (["G1", "G2", "G3", "G4"] as const).map((g) => ({
         application_id: o.applicationId,
         gate: g,
         tripped: results[g].tripped,
         reasons: results[g].status ? [{ text: `Needs attention: the check could not be completed (${results[g].error}). Treated as tripped so it reaches Kushal.`, claim_ids: [], claim_keys: [] }] : results[g].reasons,
       })),
-    ),
-    "insert gates",
+    }),
+    "replace gates",
   );
   return {
     gates: { G1: results.G1.tripped, G2: results.G2.tripped, G3: results.G3.tripped, G4: results.G4.tripped },

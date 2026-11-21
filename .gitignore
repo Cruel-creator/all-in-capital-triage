@@ -12,3 +12,6 @@ seed/out/
 tsconfig.tsbuildinfo
 
 .next-build/
+
+.vercel
+.env*

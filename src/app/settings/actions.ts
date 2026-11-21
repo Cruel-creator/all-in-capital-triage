@@ -22,16 +22,11 @@ export async function saveRubric(edit: RubricEdit, note: string) {
   if (problems.length) return { error: problems.join(" ") };
   const db = admin();
   const cur = must(await db.from("rubric_versions").select("id, version, config").eq("is_active", true).single(), "active rubric");
-  const last = must(await db.from("rubric_versions").select("version").order("version", { ascending: false }).limit(1).single(), "last version");
-  const config = { ...applyRubricEdit(cur.config, edit), version: last.version + 1 };
-  must(await db.from("rubric_versions").update({ is_active: false }).eq("id", cur.id), "deactivate");
-  const ins = await db.from("rubric_versions").insert({ version: last.version + 1, config, note: `${note.trim()} (${who.email})`, is_active: true });
-  if (ins.error) {
-    await db.from("rubric_versions").update({ is_active: true }).eq("id", cur.id); // put the old one back
-    return { error: `Couldn't save: ${ins.error.message}` };
-  }
+  // one transaction, serialised: there is always exactly one active version
+  const v = await db.rpc("activate_rubric", { cfg: applyRubricEdit(cur.config, edit), note_text: `${note.trim()} (${who.email})` });
+  if (v.error) return { error: `Couldn't save: ${v.error.message}` };
   revalidatePath("/settings");
-  return { ok: true, version: last.version + 1 };
+  return { ok: true, version: v.data as number };
 }
 
 export async function saveRules(rules: { id: string; text: string }[], note: string) {
@@ -41,16 +36,11 @@ export async function saveRules(rules: { id: string; text: string }[], note: str
   if (rules.some((r) => !r.text.trim())) return { error: "A rule can't be empty." };
   const db = admin();
   const cur = must(await db.from("thesis_versions").select("id, version, written, revealed").eq("is_active", true).single(), "active thesis");
-  const last = must(await db.from("thesis_versions").select("version").order("version", { ascending: false }).limit(1).single(), "last version");
   const revealed = { ...cur.revealed, rules: (cur.revealed.rules as { id: string; text: string }[]).map((r) => ({ ...r, text: rules.find((x) => x.id === r.id)?.text.trim() ?? r.text })) };
-  must(await db.from("thesis_versions").update({ is_active: false }).eq("id", cur.id), "deactivate");
-  const ins = await db.from("thesis_versions").insert({ version: last.version + 1, written: cur.written, revealed, note: `${note.trim()} (${who.email})`, is_active: true });
-  if (ins.error) {
-    await db.from("thesis_versions").update({ is_active: true }).eq("id", cur.id);
-    return { error: `Couldn't save: ${ins.error.message}` };
-  }
+  const v = await db.rpc("activate_thesis", { written_cfg: cur.written, revealed_cfg: revealed, note_text: `${note.trim()} (${who.email})` });
+  if (v.error) return { error: `Couldn't save: ${v.error.message}` };
   revalidatePath("/settings");
-  return { ok: true, version: last.version + 1 };
+  return { ok: true, version: v.data as number };
 }
 
 /** Re-ranks every scored application with the active weights and thresholds. No model calls. */

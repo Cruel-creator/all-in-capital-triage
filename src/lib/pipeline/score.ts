@@ -145,10 +145,10 @@ export async function runScore(o: Ctx & { sector: string; gates: Record<string, 
   const overridden = new Set(
     must(await db.from("criterion_scores").select("criterion").eq("application_id", o.applicationId).eq("is_current", true).eq("is_override", true), "overrides").map((r) => r.criterion),
   );
-  must(await db.from("criterion_scores").update({ is_current: false }).eq("application_id", o.applicationId).eq("is_current", true).eq("is_override", false), "retire scores");
   const inserted = must(
-    await db.from("criterion_scores").insert(rows.map((r) => ({ ...r, is_current: !overridden.has(r.criterion as string) }))).select("id, application_id, applied_corrections"),
-    "insert scores",
+    // retire the old machine scores and insert the new ones in one transaction (overrides stay current)
+    await db.rpc("replace_criterion_scores", { app: o.applicationId, rows: rows.map((r) => ({ ...r, is_current: !overridden.has(r.criterion as string) })) }),
+    "replace scores",
   );
   await recordApplied(inserted as { id: string; application_id: string; applied_corrections: AppliedCorrection[] }[]);
   return { scored: rows.length, attention: rows.filter((r) => r.status === "needs_attention").map((r) => `${r.criterion}: ${r.status_reason}`) };

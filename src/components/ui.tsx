@@ -89,9 +89,9 @@ export function Panel({ title, children, className, right, bare }: { title: stri
       </div>
     );
   return (
-    <section className={cx("elev-1 rounded-[8px] bg-canvas", className)} aria-label={title}>
+    <section className={cx("elev-1 rounded-[20px] bg-canvas", className)} aria-label={title}>
       <header className="flex items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
-        <h2 className="text-[13px] font-semibold text-ink">{title}</h2>
+        <h2 className="font-display text-[22px] font-normal leading-tight text-ink">{title}</h2>
         {right}
       </header>
       <div className="p-4">{children}</div>

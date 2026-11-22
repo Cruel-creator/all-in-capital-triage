@@ -10,7 +10,7 @@ import { ACTION, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, cx, 
 import { Meter } from "@/components/pipeline-board";
 import { Reveal } from "@/components/motion/reveal";
 import { Tabs } from "@/components/tabs";
-import { firstSentence, takeFor } from "@/lib/take";
+import { firstSentence, ratingWord, takeFor } from "@/lib/take";
 import { formatSlot } from "@/lib/google/slots";
 import { OverrideButton } from "@/components/override";
 import { personName, type AppliedCorrection } from "@/lib/corrections";
@@ -73,58 +73,73 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   const weak = d.crits.find((c) => c.criterion === take.weakest);
   const precedent = (rec?.precedents as { company?: string; outcome?: string; note?: string }[] | undefined)?.[0];
   return (
-    <section className="elev-1 overflow-hidden rounded-[8px] bg-canvas" aria-label="Our take">
-      <div className="grid gap-8 p-6 lg:grid-cols-[1.4fr_1fr]">
-        <div>
-          <nav aria-label="Breadcrumb" className="mb-2 text-[12px] text-ink-subtle" data-reveal>
-            <Link href="/" className="hover:text-ink">Pipeline</Link> <span aria-hidden>/</span> <span>{d.app.company_name}</span>
-          </nav>
-          <h1 className="text-[24px] font-semibold tracking-[-0.4px]">{d.app.company_name}</h1>
-          <p className="mt-1 text-ink-muted" data-reveal>{d.app.one_liner}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-1.5" data-reveal>
-            <Badge>{sectorName(d.app.sector_inferred ?? d.app.sector_label)}</Badge>
-            {d.app.sector_label_matches === false && <Badge tone="amber" title={d.app.sector_reason ?? undefined}>Labelled “{d.app.sector_label}”</Badge>}
-            <Badge>{d.app.stage_label}</Badge>
-            <Badge>{d.app.source === "warm_intro" ? "Warm intro" : "Application form"}</Badge>
+    <section className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" aria-label="Our take">
+      <div className="tray min-w-0">
+        <div className="tray-in h-full p-6 md:p-8">
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-[12px] text-ink-subtle" data-reveal>
+            <Link href="/" className="press inline-flex h-8 items-center gap-1.5 rounded-full px-3 pl-2 text-ink-muted shadow-[inset_0_0_0_1px_var(--hairline)] hover:text-ink">
+              <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 3 5 7l4 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>Pipeline
+            </Link>
+            <span className="rounded-full bg-surface-2 px-2.5 py-1">{sectorName(d.app.sector_inferred ?? d.app.sector_label)}</span>
+            {d.app.sector_label_matches === false && <span className="rounded-full bg-amber-bg px-2.5 py-1 text-amber" title={d.app.sector_reason ?? undefined}>Labelled “{d.app.sector_label}”</span>}
+            <span className="rounded-full bg-surface-2 px-2.5 py-1">{d.app.stage_label}</span>
+            <span className="rounded-full bg-surface-2 px-2.5 py-1">{d.app.source === "warm_intro" ? "Warm intro" : "Application form"}</span>
             {s?.written_fit && <Badge tone={FIT[s.written_fit].tone} title={s.written_fit_reason ?? undefined}>{FIT[s.written_fit].label}</Badge>}
-          </div>
+          </nav>
+          <h1 className="mt-5 font-display text-[48px] font-normal leading-[0.95] tracking-[-1.2px] md:text-[64px]">{d.app.company_name}</h1>
+          <p className="mt-2 text-[15px] text-ink-muted" data-reveal>{d.app.one_liner}</p>
 
-          <div className="mt-6" data-reveal>
-            <p className="eyebrow">Our take</p>
-            <p className="mt-1.5 text-[19px] font-medium leading-snug tracking-[-0.3px]">{take.verdict}</p>
-            <ul className="mt-3 space-y-2 text-[13px] leading-relaxed">
-              {strong && <li><span className="font-medium text-green">For it.</span> <span className="text-ink-muted">{firstSentence(strong.rationale, 220)}</span></li>}
-              {weak && <li><span className="font-medium text-amber">Against it.</span> <span className="text-ink-muted">{firstSentence(weak.rationale, 220)}</span></li>}
-              {rec?.what_would_change && rec.action !== "take_call" && <li><span className="font-medium text-ink">What would change our mind.</span> <span className="text-ink-muted">{firstSentence(rec.what_would_change, 200)}</span></li>}
-            </ul>
-            {precedent?.company && <p className="mt-3 text-[12px] text-ink-subtle">Reminds us of <span className="font-medium text-ink-muted">{precedent.company}</span> ({precedent.outcome}).</p>}
+          <div className="mt-6 border-t border-hairline pt-5" data-reveal>
+            <span className="eyebrow-pill">Our take</span>
+            <p className="mt-3 font-display text-[30px] leading-[1.1] tracking-[-0.4px] md:text-[34px]">{take.verdict}</p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {strong && (
+                <div className="rounded-[14px] bg-green-bg px-4 py-3.5">
+                  <p className="text-[12px] font-semibold text-green">For it</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-ink">{firstSentence(strong.rationale, 220)}</p>
+                </div>
+              )}
+              {weak && (
+                <div className="rounded-[14px] bg-amber-bg px-4 py-3.5">
+                  <p className="text-[12px] font-semibold text-amber">Against it</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-ink">{firstSentence(weak.rationale, 220)}</p>
+                </div>
+              )}
+            </div>
+            {rec?.what_would_change && rec.action !== "take_call" && (
+              <p className="mt-4 text-[14px] leading-relaxed text-ink-muted"><span className="font-medium text-ink">What would change our mind:</span> {firstSentence(rec.what_would_change, 200)}</p>
+            )}
+            {precedent?.company && <p className="mt-3 text-[13px] text-ink-subtle">Reminds us of <span className="font-display text-[17px] text-ink">{precedent.company}</span> ({precedent.outcome}).</p>}
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-col gap-4" data-reveal>
+      <aside className="flex min-w-0 flex-col gap-4" data-reveal>
+        <div className="rounded-[20px] bg-canvas p-5 shadow-[inset_0_0_0_1px_var(--hairline)]">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="eyebrow">{view === "written" ? "Against our written thesis" : "Against how we actually invest"}</p>
-              <div className="mt-2"><Meter score={s ? Number(s.total) : null} /></div>
-            </div>
+            <p className="eyebrow">{view === "written" ? "Against our written thesis" : "Against how we actually invest"}</p>
             {rec && <Badge tone={ACTION[rec.action].tone}>{ACTION[rec.action].label}</Badge>}
           </div>
-          <div role="group" aria-label="Thesis view" className="flex self-start rounded-[8px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="font-display text-[38px] leading-none">{ratingWord(s ? Number(s.total) : null).word}</span>
+            <Meter score={s ? Number(s.total) : null} />
+          </div>
+          <div role="group" aria-label="Thesis view" className="mt-4 flex self-start rounded-full bg-surface-1 p-1 shadow-[inset_0_0_0_1px_var(--hairline)]">
             {(["revealed", "written"] as const).map((v) => (
               <Link key={v} href={`?view=${v}`} replace scroll={false} aria-current={view === v ? "true" : undefined}
-                className={cx("press flex h-8 items-center rounded-[6px] px-2.5 text-[12px]", view === v ? "bg-canvas font-medium text-ink shadow-[0_0_0_1px_var(--hairline)]" : "text-ink-subtle hover:text-ink")}>
+                className={cx("press flex h-8 flex-1 items-center justify-center rounded-full px-3 text-[12px]", view === v ? "bg-solid font-medium text-on-solid" : "text-ink-subtle hover:text-ink")}>
                 {v === "revealed" ? "How we invest" : "What we say"}
               </Link>
             ))}
           </div>
           {tripped.length === 0 ? (
-            <p className="flex items-center gap-1.5 text-[13px] text-ink-muted"><span aria-hidden className="text-green">✓</span> Clears every gate: stage, sector, conflicts, integrity.</p>
+            <p className="mt-4 flex items-center gap-1.5 text-[13px] text-green"><span aria-hidden>✓</span> Clears every gate: stage, sector, conflicts, integrity.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="mt-4 space-y-2">
               {tripped.map((g) => {
                 const reasons = (g.reasons ?? []) as { text: string; claim_keys?: string[]; portfolio?: { company: string; source_url: string } }[];
                 return (
-                  <li key={g.gate} className="rounded-[8px] bg-red-bg px-3 py-2.5">
+                  <li key={g.gate} className="rounded-[14px] bg-red-bg px-3.5 py-3">
                     <p className="flex items-center gap-1.5 text-[13px] font-medium text-red"><GateIcon /> {GATE_NAMES[g.gate]}: Kushal decides</p>
                     {reasons.slice(0, 2).map((r, i) => (
                       <div key={i} className="mt-1 space-y-1 text-[12px] text-ink">
@@ -137,9 +152,9 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
               })}
             </ul>
           )}
-          {decision}
         </div>
-      </div>
+        {decision}
+      </aside>
     </section>
   );
 }
@@ -148,9 +163,9 @@ function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail
   const memo = d.memos.find((m) => m.id === c.precedent_memo_id);
   const applied = (c.applied_corrections ?? []) as AppliedCorrection[];
   return (
-    <article data-reveal-scroll className="elev-1 rounded-[8px] bg-canvas p-4" aria-labelledby={`crit-${c.criterion}`}>
+    <article data-reveal-scroll className="rounded-[20px] bg-canvas p-5 shadow-[inset_0_0_0_1px_var(--hairline)]" aria-labelledby={`crit-${c.criterion}`}>
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id={`crit-${c.criterion}`} className="text-[14px] font-semibold">{CRIT_NAMES[c.criterion]}</h3>
+        <h3 id={`crit-${c.criterion}`} className="font-display text-[24px] font-normal leading-tight">{CRIT_NAMES[c.criterion]}</h3>
         <div className="flex items-center gap-2">
           {c.status === "needs_attention" && <Badge tone="amber" title={c.status_reason ?? undefined}>Needs a look</Badge>}
           <Badge tone={CONF[c.confidence].tone} title="How well this is backed: checked outside, deck and form agree, or the deck alone">{CONF[c.confidence].label}</Badge>
@@ -163,14 +178,14 @@ function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail
         {c.question_for_call && <p className="text-[12px] text-ink-muted"><span className="font-medium text-ink">We’d ask:</span> {c.question_for_call}</p>}
         {memo && <p className="text-[12px] text-ink-subtle">Like {memo.company} ({memo.outcome}){c.precedent_note ? `: ${c.precedent_note}` : ""}</p>}
         {c.is_override && (
-          <p className="rounded-[6px] bg-surface-1 px-2.5 py-1.5 text-[12px] text-ink-muted">
+          <p className="rounded-[10px] bg-surface-1 px-2.5 py-1.5 text-[12px] text-ink-muted">
             <span className="font-medium text-ink">Corrected by {personName(c.override_by_email)}:</span> {c.override_reason}
           </p>
         )}
         {applied.length > 0 && (
           <ul className="flex flex-wrap gap-1" aria-label="Past corrections the scorer was shown">
             {applied.map((a) => (
-              <li key={a.id} className="rounded-[6px] bg-surface-1 px-2 py-1 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)]" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
+              <li key={a.id} className="rounded-[10px] bg-surface-1 px-2 py-1 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)]" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
                 Applied correction from <span className="font-medium text-ink">{a.company}</span> ({a.by}): {a.reason}
               </li>
             ))}
@@ -331,7 +346,7 @@ export default async function ApplicationPage({ params, searchParams }: { params
   return (
     <Reveal className="space-y-6">
       {d.app.status === "needs_attention" && (
-        <div role="alert" className="rounded-[8px] bg-amber-bg px-4 py-3 text-[13px] text-amber" data-reveal>
+        <div role="alert" className="rounded-[16px] bg-amber-bg px-4 py-3 text-[13px] text-amber" data-reveal>
           <p className="font-medium">Needs a look</p>
           <p>{d.app.status_reason}</p>
         </div>
@@ -339,13 +354,13 @@ export default async function ApplicationPage({ params, searchParams }: { params
       <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <section className="min-w-0 space-y-3" aria-labelledby="h-crit">
-          <h2 id="h-crit" className="text-[14px] font-semibold" data-reveal>How it reads, area by area</h2>
+          <h2 id="h-crit" className="font-display text-[28px] font-normal" data-reveal>How it reads, area by area</h2>
           {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} canAct={!!user} />) : (
-            <div className="elev-1 rounded-[8px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
+            <div className="elev-1 rounded-[20px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
         </section>
         <section className="min-w-0 space-y-3" aria-labelledby="h-next">
-          <h2 id="h-next" className="text-[14px] font-semibold" data-reveal>What happens next</h2>
+          <h2 id="h-next" className="font-display text-[28px] font-normal" data-reveal>What happens next</h2>
           <div data-reveal>
             <Composer
               applicationId={d.app.id}

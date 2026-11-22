@@ -81,7 +81,7 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
 
   if (!rows.length)
     return (
-      <div className="elev-1 rounded-[8px] p-8 text-center">
+      <div className="elev-1 rounded-[20px] p-8 text-center">
         <p className="font-medium">Nothing in the pipeline yet</p>
         <p className="mt-1 text-ink-subtle">New applications appear here as soon as they’re submitted and processed.</p>
       </div>
@@ -97,10 +97,10 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
             value={f.q}
             onChange={(e) => setF({ ...f, q: e.target.value })}
             placeholder="Search company, sector…  ( / )"
-            className="h-9 w-full rounded-[6px] bg-surface-1 px-3 text-[13px] text-ink shadow-[0_0_0_1px_var(--hairline)] placeholder:text-ink-subtle"
+            className="h-9 w-full rounded-[10px] bg-surface-1 px-3 text-[13px] text-ink shadow-[0_0_0_1px_var(--hairline)] placeholder:text-ink-subtle"
           />
         </label>
-        <div role="group" aria-label="Recommendation" className="flex rounded-[6px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
+        <div role="group" aria-label="Recommendation" className="flex rounded-[10px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
           {(["all", "take_call", "dig", "pass"] as const).map((a) => (
             <button
               key={a}
@@ -113,7 +113,7 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
             </button>
           ))}
         </div>
-        <div className="flex h-9 items-center gap-2 rounded-[6px] px-2 text-[13px] text-ink-muted">
+        <div className="flex h-9 items-center gap-2 rounded-[10px] px-2 text-[13px] text-ink-muted">
           <input id="gates-only" type="checkbox" checked={f.gatesOnly} onChange={(e) => setF({ ...f, gatesOnly: e.target.checked })} className="size-4 accent-[var(--primary)]" />
           <label htmlFor="gates-only">Gate tripped only</label>
         </div>
@@ -123,7 +123,7 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
             const name = window.prompt("Name this view", f.q || (f.action !== "all" ? ACTION[f.action].label : "My view"));
             if (name) saveViews([...views.filter((v) => v.name !== name), { name, filter: f }]);
           }}
-          className="press h-9 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink"
+          className="press h-9 rounded-full px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink"
         >
           Save view
         </button>
@@ -141,12 +141,12 @@ export function PipelineTable({ rows }: { rows: PipelineRow[] }) {
       )}
 
       {!shown.length ? (
-        <div className="elev-1 rounded-[8px] p-8 text-center">
+        <div className="elev-1 rounded-[20px] p-8 text-center">
           <p className="font-medium">No applications match these filters</p>
           <button type="button" onClick={() => setF(EMPTY)} className="press mt-2 text-[13px] font-medium text-primary">Clear filters</button>
         </div>
       ) : (
-        <div className="elev-1 overflow-hidden rounded-[8px]">
+        <div className="elev-1 overflow-hidden rounded-[16px]">
           <table className="w-full border-collapse text-left text-[13px]">
             <caption className="sr-only">Applications ranked by bucket, then score, then evidence coverage, then date received</caption>
             <thead className="bg-surface-1 text-ink-subtle">

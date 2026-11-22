@@ -20,7 +20,7 @@ export function ThemeToggle() {
         } catch {}
         setMode(next);
       }}
-      className="press hit flex h-8 w-full items-center gap-2 rounded-[6px] px-2 text-[13px] text-ink-subtle hover:bg-surface-2 hover:text-ink"
+      className="press hit flex h-8 w-full items-center gap-2 rounded-full px-2 text-[13px] text-ink-subtle hover:bg-surface-2 hover:text-ink"
       aria-label={`Switch to ${next} theme`}
     >
       <svg aria-hidden width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">

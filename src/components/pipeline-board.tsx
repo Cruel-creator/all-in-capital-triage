@@ -44,14 +44,11 @@ function Row({ r, refCb }: { r: PipelineRow; refCb: (el: HTMLAnchorElement | nul
       href={`/applications/${r.id}`}
       aria-label={`${r.company}, ${sectorName(r.sector ?? r.sector_label)}. ${busy ? "Still being read" : r.status === "needs_attention" ? "Needs a look" : `${t.line || t.verdict} Rated ${ratingWord(r.total).word.toLowerCase()}.${r.gates.length ? ` Gates: ${r.gates.map((g) => GATE_NAMES[g]).join(", ")}.` : ""}`}`}
       data-row
-      className="grid grid-cols-1 gap-x-4 gap-y-1 px-4 py-3 transition-colors duration-150 hover:bg-surface-1 focus-visible:bg-surface-1 md:grid-cols-[300px_1fr_auto] md:items-center"
+      className="grid grid-cols-1 gap-x-5 gap-y-1.5 px-5 py-4 transition-colors duration-150 hover:bg-surface-1 focus-visible:bg-surface-1 md:grid-cols-[280px_1fr_auto] md:items-center"
     >
       <div className="min-w-0">
-        <p className="flex items-center gap-2">
-          <span className="truncate text-[14px] font-semibold">{r.company}</span>
-          <span className="shrink-0 text-[12px] text-ink-subtle">{sectorName(r.sector ?? r.sector_label)}</span>
-        </p>
-        <p className="truncate text-[12px] text-ink-subtle">{r.one_liner}</p>
+        <p className="truncate font-display text-[22px] leading-[1.1]">{r.company}</p>
+        <p className="mt-0.5 truncate text-[12px] text-ink-subtle">{sectorName(r.sector ?? r.sector_label)} · {r.one_liner}</p>
       </div>
       <div className="min-w-0 text-[13px]">
         {busy ? (
@@ -121,33 +118,33 @@ export function PipelineBoard({ rows }: { rows: PipelineRow[] }) {
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div role="group" aria-label="Filter by lane" className="flex flex-wrap gap-1.5">
-          <button type="button" aria-pressed={only === null} onClick={() => setOnly(null)}
-            className={cx("press h-8 rounded-[6px] px-2.5 text-[12px]", only === null ? "bg-surface-3 font-medium text-ink" : "text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1")}>
-            All <span className="num text-ink-subtle">{searched.length}</span>
-          </button>
-          {LANES.map((l) => {
-            const n = searched.filter((r) => laneOf(r) === l.key).length;
-            const on = only === l.key;
-            return (
-              <button key={l.key} type="button" aria-pressed={on} title={l.hint} onClick={() => setOnly(on ? null : l.key)}
-                className={cx("press h-8 rounded-[6px] px-2.5 text-[12px]", on ? "bg-surface-3 font-medium text-ink" : "text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1")}>
-                {l.title} <span className="num text-ink-subtle">{n}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div role="group" aria-label="Filter by lane" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {LANES.map((l) => {
+          const n = searched.filter((r) => laneOf(r) === l.key).length;
+          const on = only === l.key;
+          return (
+            <button key={l.key} type="button" aria-pressed={on} title={l.hint} onClick={() => setOnly(on ? null : l.key)}
+              className={cx("press flex flex-col items-start rounded-[16px] px-4 py-3.5 text-left", on ? "bg-solid text-on-solid shadow-[0_16px_34px_-20px_rgb(30_26_21/0.7)]" : "bg-canvas shadow-[inset_0_0_0_1px_var(--hairline)] hover:bg-surface-1")}>
+              <span className={cx("text-[12px]", on ? "text-solid-muted" : "text-ink-subtle")}>{l.title}</span>
+              <span className="num font-display text-[36px] leading-[1.05]">{n}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[13px] text-ink-subtle" aria-live="polite">
+          {only ? <>Showing {LANES.find((l) => l.key === only)?.title.toLowerCase()} · <button type="button" onClick={() => setOnly(null)} className="press font-medium text-primary">show all {searched.length}</button></> : `All ${searched.length} applications`}
+        </p>
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <label className="relative min-w-0 flex-1 sm:flex-none">
             <span className="sr-only">Search applications</span>
-            <input ref={search} data-search value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search  /"
-              className="h-8 w-full rounded-[6px] sm:w-[200px] bg-canvas px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)] focus:shadow-[0_0_0_2px_var(--primary)] focus:outline-none" />
+            <input ref={search} data-search value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search companies   /"
+              className="h-10 w-full rounded-full bg-canvas px-4 text-[13px] shadow-[inset_0_0_0_1px_var(--hairline)] focus:shadow-[0_0_0_2px_var(--primary)] focus:outline-none sm:w-[240px]" />
           </label>
-          <div role="group" aria-label="Layout" className="flex rounded-[6px] bg-surface-1 p-0.5 shadow-[0_0_0_1px_var(--hairline)]">
+          <div role="group" aria-label="Layout" className="flex rounded-full bg-canvas p-1 shadow-[inset_0_0_0_1px_var(--hairline)]">
             {(["lanes", "table"] as const).map((v) => (
               <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}
-                className={cx("press h-7 rounded-[4px] px-2.5 text-[12px] capitalize", view === v ? "bg-canvas font-medium text-ink shadow-[0_0_0_1px_var(--hairline)]" : "text-ink-subtle hover:text-ink")}>
+                className={cx("press h-8 rounded-full px-3.5 text-[12px] capitalize", view === v ? "bg-solid font-medium text-on-solid" : "text-ink-subtle hover:text-ink")}>
                 {v}
               </button>
             ))}
@@ -158,29 +155,32 @@ export function PipelineBoard({ rows }: { rows: PipelineRow[] }) {
       {view === "table" ? (
         <PipelineTable rows={shown} />
       ) : ordered.length === 0 ? (
-        <div className="elev-1 rounded-[8px] bg-canvas px-4 py-10 text-center">
-          <p className="font-medium">Nothing matches{q ? ` “${q}”` : ""}</p>
+        <div className="tray"><div className="tray-in px-4 py-10 text-center">
+          <p className="font-display text-[22px]">Nothing matches{q ? ` “${q}”` : ""}</p>
           <button type="button" onClick={() => { setQ(""); setOnly(null); }} className="press mt-2 text-[13px] font-medium text-primary">Clear filters</button>
-        </div>
+        </div></div>
       ) : (
-        <Reveal className="space-y-4">
+        <Reveal className="space-y-5">
           {LANES.filter((l) => !only || l.key === only).map((lane) => {
             const items = shown.filter((r) => laneOf(r) === lane.key);
             return (
-              <section key={lane.key} aria-labelledby={`lane-${lane.key}`} data-reveal className="elev-1 overflow-hidden rounded-[8px] bg-canvas">
-                <header className="flex flex-wrap items-baseline gap-x-2 border-b border-hairline bg-surface-1 px-4 py-2">
-                  <h2 id={`lane-${lane.key}`} className="text-[13px] font-semibold">{lane.title}</h2>
-                  <span className="num text-[12px] text-ink-subtle">{items.length}</span>
-                  <span className="text-[12px] text-ink-subtle">· {items.length ? lane.hint : "nothing here right now"}</span>
-                </header>
-                {items.length > 0 && <div className="divide-y divide-hairline">{items.map((r) => <Row key={r.id} r={r} refCb={refCb} />)}</div>}
+              <section key={lane.key} aria-labelledby={`lane-${lane.key}`} data-reveal className="tray">
+                <div className="tray-in overflow-hidden">
+                  <header className={cx("flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 px-5 py-3.5", items.length > 0 && "border-b border-hairline")}>
+                    <h2 id={`lane-${lane.key}`} className="font-display text-[24px] font-normal leading-tight">{lane.title} <span className="num font-sans text-[13px] text-ink-subtle">{items.length}</span></h2>
+                    <span className="text-[12px] text-ink-subtle">{items.length ? lane.hint : "Nothing here right now"}</span>
+                  </header>
+                  {items.length > 0 && <div className="divide-y divide-hairline">{items.map((r) => <Row key={r.id} r={r} refCb={refCb} />)}</div>}
+                </div>
               </section>
             );
           })}
           {unsorted.length > 0 && (
-            <section data-reveal aria-labelledby="lane-reading" className="elev-1 overflow-hidden rounded-[8px] bg-canvas">
-              <header className="border-b border-hairline bg-surface-1 px-4 py-2"><h2 id="lane-reading" className="text-[13px] font-semibold">Still being read</h2></header>
-              <div className="divide-y divide-hairline">{unsorted.map((r) => <Row key={r.id} r={r} refCb={refCb} />)}</div>
+            <section data-reveal aria-labelledby="lane-reading" className="tray">
+              <div className="tray-in overflow-hidden">
+                <header className="border-b border-hairline px-5 py-3.5"><h2 id="lane-reading" className="font-display text-[24px] font-normal">Still being read</h2></header>
+                <div className="divide-y divide-hairline">{unsorted.map((r) => <Row key={r.id} r={r} refCb={refCb} />)}</div>
+              </div>
             </section>
           )}
         </Reveal>

@@ -11,7 +11,7 @@ export default async function PortfolioPage() {
   return (
     <div className="max-w-[1080px]">
       <header className="mb-5">
-        <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Portfolio</h1>
+        <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Portfolio</h1>
         <p className="mt-0.5 text-[14px] text-ink-muted">The conflict check compares every applicant against this list, so keep the one-liners accurate. Each row needs a source.</p>
       </header>
       <PortfolioEditor rows={rows} canEdit={!!user} />

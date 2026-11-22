@@ -21,7 +21,7 @@ const stepName = (s: string) => STEP[s] ?? (s.startsWith("retrieve:") || s.start
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="elev-1 rounded-[8px] bg-canvas p-4">
+    <div className="elev-1 rounded-[20px] bg-canvas p-4">
       <p className="eyebrow">{label}</p>
       <p className="num mt-1 text-[22px] font-semibold tracking-[-0.4px]">{value}</p>
       {sub && <p className="mt-0.5 text-[12px] text-ink-subtle">{sub}</p>}
@@ -60,14 +60,14 @@ export default async function OpsPage() {
   return (
     <div className="max-w-[1080px] space-y-6">
       <header>
-        <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Cost &amp; ops</h1>
+        <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Cost &amp; ops</h1>
         <p className="mt-0.5 text-[14px] text-ink-muted">
           {l.paused_at ? "The queue is paused: today's spend passed the daily limit." : `${usd(today)} of ${usd(Number(l.daily_usd))} spent today. ${queue.length} waiting, ${running.length} running.`}
         </p>
       </header>
 
       {l.paused_at && (
-        <div role="alert" className="rounded-[8px] bg-amber-bg px-4 py-3 text-[13px] text-amber">
+        <div role="alert" className="rounded-[16px] bg-amber-bg px-4 py-3 text-[13px] text-amber">
           <p className="font-medium">Paused {fmtDate(l.paused_at)}</p>
           <p>{l.pause_reason}. Nothing new runs until a partner resumes it below.</p>
         </div>
@@ -80,7 +80,7 @@ export default async function OpsPage() {
         <Tile label="Per application" value={usd(perApp)} sub={`average over ${byApp.size} applications`} />
       </section>
 
-      <section className="elev-1 rounded-[8px] bg-canvas p-5" aria-labelledby="h-limit">
+      <section className="elev-1 rounded-[20px] bg-canvas p-5" aria-labelledby="h-limit">
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="h-limit" className="text-[14px] font-semibold">Daily limit</h2>
           <div className="flex items-center gap-2 text-[12px] text-ink-subtle">
@@ -92,7 +92,7 @@ export default async function OpsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="elev-1 overflow-hidden rounded-[8px] bg-canvas" aria-labelledby="h-step">
+        <section className="elev-1 overflow-hidden rounded-[16px] bg-canvas" aria-labelledby="h-step">
           <h2 id="h-step" className="border-b border-hairline px-4 py-2.5 text-[14px] font-semibold">Where the money goes (30 days)</h2>
           <table className="w-full text-[13px]">
             <tbody>
@@ -106,7 +106,7 @@ export default async function OpsPage() {
             </tbody>
           </table>
         </section>
-        <section className="elev-1 overflow-hidden rounded-[8px] bg-canvas" aria-labelledby="h-app">
+        <section className="elev-1 overflow-hidden rounded-[16px] bg-canvas" aria-labelledby="h-app">
           <h2 id="h-app" className="border-b border-hairline px-4 py-2.5 text-[14px] font-semibold">By application (30 days)</h2>
           <table className="w-full text-[13px]">
             <tbody>
@@ -125,7 +125,7 @@ export default async function OpsPage() {
         </section>
       </div>
 
-      <section className="elev-1 overflow-hidden rounded-[8px] bg-canvas" aria-labelledby="h-queue">
+      <section className="elev-1 overflow-hidden rounded-[16px] bg-canvas" aria-labelledby="h-queue">
         <h2 id="h-queue" className="border-b border-hairline px-4 py-2.5 text-[14px] font-semibold">Queue</h2>
         {queue.length === 0 && running.length === 0 && attention.length === 0 ? (
           <p className="px-4 py-3 text-[13px] text-ink-subtle">Nothing queued or running.</p>
@@ -140,7 +140,7 @@ export default async function OpsPage() {
         )}
       </section>
 
-      <section className="elev-1 overflow-x-auto rounded-[8px] bg-canvas" aria-labelledby="h-calls">
+      <section className="elev-1 overflow-x-auto rounded-[16px] bg-canvas" aria-labelledby="h-calls">
         <h2 id="h-calls" className="border-b border-hairline px-4 py-2.5 text-[14px] font-semibold">Latest model calls</h2>
         <table className="w-full text-left text-[12px]">
           <thead className="text-ink-subtle"><tr className="border-b border-hairline"><th className="px-4 py-2 font-medium">When</th><th className="px-4 py-2 font-medium">Step</th><th className="px-4 py-2 font-medium">Model</th><th className="num px-4 py-2 text-right font-medium">Tokens in / out</th><th className="num px-4 py-2 text-right font-medium">Time</th><th className="num px-4 py-2 text-right font-medium">Cost</th><th className="px-4 py-2 font-medium">Trace</th></tr></thead>

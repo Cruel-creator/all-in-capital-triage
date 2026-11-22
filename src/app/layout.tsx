@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { MobileBar, Rail } from "@/components/shell";
 import { themeScript } from "@/components/theme";
@@ -11,8 +11,10 @@ import { ACTION } from "@/components/ui";
 import { currentUser } from "@/lib/google/session";
 import { googleConfigured, mailboxEmail } from "@/lib/google/client";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
+// Direction A type: Instrument Serif for headings and company names, Geist for the interface, Geist Mono for figures
+const sans = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono", display: "swap" });
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif", display: "swap" });
 
 export const metadata: Metadata = { title: "All In Capital · Triage", description: "Inbound application triage for All In Capital" };
 
@@ -31,12 +33,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ...rows.map((r) => ({ label: r.company, hint: r.action ? ACTION[r.action].label : r.status, href: `/applications/${r.id}` })),
   ];
   return (
-    <html lang="en-IN" className={`${inter.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en-IN" className={`${sans.variable} ${mono.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-dvh bg-canvas text-ink">
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-[6px] focus:bg-canvas focus:px-3 focus:py-2 elev-2">
+      <body className="min-h-dvh text-ink">
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-full focus:bg-canvas focus:px-3 focus:py-2 elev-2">
           Skip to content
         </a>
         <SourceProvider>

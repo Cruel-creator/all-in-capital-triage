@@ -17,7 +17,7 @@ export function Tabs({ items, label }: { items: { id: string; label: string; con
     refs.current[j]?.focus();
   };
   return (
-    <div className="elev-1 rounded-[8px] bg-canvas">
+    <div className="elev-1 rounded-[20px] bg-canvas">
       <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-hairline px-2">
         {items.map((t, i) => (
           <button

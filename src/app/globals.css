@@ -1,57 +1,66 @@
-/* Tokens from DESIGN.md (source: src/styles/tokens.ts; contrast verified by pnpm check:contrast). */
+/* Direction A, Private Office (source: src/styles/tokens.ts; contrast verified by pnpm check:contrast). */
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  --canvas: #ffffff;
-  --surface-1: #f7f8f8;
-  --surface-2: #f1f2f3;
-  --surface-3: #e9ebed;
-  --hairline: #e4e6e9;
-  --hairline-strong: #d0d4d9;
-  --ink: #0f1011;
-  --ink-muted: #3c4047;
-  --ink-subtle: #62666d;
-  --ink-disabled: #9ba0a8;
-  --primary: #5763cc;
-  --primary-hover: #4853bd;
-  --on-primary: #ffffff;
-  --red: #c4372c;
-  --red-bg: #fdf0ef;
-  --amber: #8a5a00;
-  --amber-bg: #fdf6e7;
-  --green: #1f7a3a;
-  --green-bg: #eef7f0;
-  --shadow-alpha: 0.04;
+  --page: #f6f1e8;
+  --canvas: #fffdf9;
+  --surface-1: #f9f4eb;
+  --surface-2: #f1eadd;
+  --surface-3: #e9e0cf;
+  --hairline: #e7ddcb;
+  --hairline-strong: #d4c7ae;
+  --ink: #1e1a15;
+  --ink-muted: #463d32;
+  --ink-subtle: #635849;
+  --ink-disabled: #a59a88;
+  --primary: #76562a;
+  --primary-hover: #5f4520;
+  --on-primary: #fffdf9;
+  --solid: #1e1a15;
+  --on-solid: #f6f1e8;
+  --solid-muted: #d8c39a;
+  --red: #9a3426;
+  --red-bg: #f8e8e2;
+  --amber: #7c560f;
+  --amber-bg: #f7edd9;
+  --green: #3b6427;
+  --green-bg: #ecf2e4;
+  --shadow-alpha: 0.06;
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --canvas: #0b0c0d;
-  --surface-1: #0f1011;
-  --surface-2: #141516;
-  --surface-3: #191a1b;
-  --hairline: #23252a;
-  --hairline-strong: #34343a;
-  --ink: #f7f8f8;
-  --ink-muted: #d0d6e0;
-  --ink-subtle: #8a8f98;
-  --ink-disabled: #62666d;
-  --primary: #7c86e6;
-  --primary-hover: #959efa;
-  --on-primary: #0b0c0d;
-  --red: #f0776d;
-  --red-bg: #2a1513;
-  --amber: #e3b341;
-  --amber-bg: #2a2110;
-  --green: #5cc27a;
-  --green-bg: #12251a;
-  --shadow-alpha: 0.4;
+  --page: #12100d;
+  --canvas: #1a1713;
+  --surface-1: #1f1b16;
+  --surface-2: #26211b;
+  --surface-3: #2d2720;
+  --hairline: #352e25;
+  --hairline-strong: #4a4033;
+  --ink: #f3ecdf;
+  --ink-muted: #d8cebd;
+  --ink-subtle: #ab9f8b;
+  --ink-disabled: #6f6555;
+  --primary: #d9b77e;
+  --primary-hover: #e7c993;
+  --on-primary: #1a1713;
+  --solid: #efe6d6;
+  --on-solid: #1e1a15;
+  --solid-muted: #6a5634;
+  --red: #f0907e;
+  --red-bg: #2f1b16;
+  --amber: #e7c26e;
+  --amber-bg: #2c2415;
+  --green: #a3cf86;
+  --green-bg: #1d2718;
+  --shadow-alpha: 0.45;
   color-scheme: dark;
 }
 
 @theme inline {
+  --color-page: var(--page);
   --color-canvas: var(--canvas);
   --color-surface-1: var(--surface-1);
   --color-surface-2: var(--surface-2);
@@ -65,14 +74,18 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-on-primary: var(--on-primary);
+  --color-solid: var(--solid);
+  --color-on-solid: var(--on-solid);
+  --color-solid-muted: var(--solid-muted);
   --color-red: var(--red);
   --color-red-bg: var(--red-bg);
   --color-amber: var(--amber);
   --color-amber-bg: var(--amber-bg);
   --color-green: var(--green);
   --color-green-bg: var(--green-bg);
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: var(--font-geist), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-serif), "Iowan Old Style", Georgia, serif;
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -82,7 +95,7 @@
 
 @layer base {
   html {
-    background: var(--canvas);
+    background: var(--page);
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -91,6 +104,8 @@
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.5;
+    /* ivory paper with a faint brass light from the top right (fixed, so it never repaints while scrolling) */
+    background: radial-gradient(1100px 480px at 88% -8%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 62%) fixed, var(--page);
   }
   h1, h2, h3 {
     text-wrap: balance;
@@ -116,7 +131,7 @@
     font-variant-numeric: tabular-nums;
   }
   .elev-1 {
-    box-shadow: 0 0 0 1px var(--hairline), 0 1px 2px rgb(15 16 17 / var(--shadow-alpha));
+    box-shadow: inset 0 0 0 1px var(--hairline), 0 18px 36px -28px rgb(60 40 15 / calc(var(--shadow-alpha) * 5));
   }
   .elev-2 {
     box-shadow: 0 0 0 1px var(--hairline), 0 4px 12px rgb(15 16 17 / calc(var(--shadow-alpha) * 2));
@@ -154,6 +169,61 @@
 }
 
 @layer components {
+  /* Direction A signature pieces */
+  /* the machined tray: an outer hairline shell holding a lifted inner panel (radii concentric: 20 = 14 + 6) */
+  .tray {
+    padding: 6px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--ink) 3.5%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 6%, transparent);
+  }
+  .tray-in {
+    border-radius: 14px;
+    background: var(--canvas);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 70%, transparent), 0 22px 44px -30px rgb(60 40 15 / calc(var(--shadow-alpha) * 6));
+  }
+  [data-theme="dark"] .tray-in { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 22px 44px -30px rgb(0 0 0 / 0.8); }
+  /* tiny pill label above a heading */
+  .eyebrow-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+  /* pill button with its arrow nested in a circle on the right */
+  .btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    padding: 0 6px 0 18px;
+    border-radius: 999px;
+    background: var(--solid);
+    color: var(--on-solid);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .btn-pill:disabled { background: var(--surface-3); color: var(--ink-subtle); cursor: not-allowed; }
+  .btn-pill > .arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--solid-muted) 22%, transparent);
+    transition-property: translate;
+    transition-duration: 220ms;
+    transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .btn-pill:not(:disabled):hover > .arrow { translate: 2px -1px; }
+
   /* qualitative meter: 5 ticks instead of a number */
   .meter { display: inline-flex; gap: 2px; }
   .meter > i { width: 10px; height: 4px; border-radius: 2px; background: var(--surface-3); }

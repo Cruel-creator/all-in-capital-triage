@@ -51,25 +51,27 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
       <label className="block">
         <span className="eyebrow">To</span>
         <input type="email" value={to} onChange={(e) => (setTo(e.target.value), setConfirm(null))} placeholder="founder@company.com" autoComplete="off"
-          className="mt-1 h-9 w-full rounded-[6px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+          className="mt-1 h-9 w-full rounded-[10px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
       </label>
       {confirm ? (
-        <div className="rounded-[6px] bg-surface-1 p-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" role="group" aria-label="Confirm sending">
+        <div className="rounded-[10px] bg-surface-1 p-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" role="group" aria-label="Confirm sending">
           <p>Send this {TEMPLATE_LABEL[draft.template].toLowerCase()} to <span className="font-medium">{to.trim()}</span> from <span className="font-medium">{gmail}</span> now?</p>
           {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, both free on your calendar.</p>}
           <div className="mt-2 flex gap-1.5">
-            <button type="button" onClick={send} disabled={pending} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
+            <button type="button" onClick={send} disabled={pending} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
               {pending ? "Sending…" : "Send now"}
             </button>
-            <button type="button" onClick={() => setConfirm(null)} disabled={pending} className="press h-8 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">Cancel</button>
+            <button type="button" onClick={() => setConfirm(null)} disabled={pending} className="press h-8 rounded-full px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">Cancel</button>
           </div>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-end gap-2">
           {blocked && <span className="text-[12px] text-ink-subtle">{blocked}</span>}
-          <button type="button" onClick={review} disabled={!!blocked || pending}
-            className="press h-9 rounded-[6px] bg-primary px-4 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">
+          <button type="button" onClick={review} disabled={!!blocked || pending} className="btn-pill press">
             {pending ? "Checking calendar…" : "Review and send"}
+            <span className="arrow" aria-hidden>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 9l6-6M4.5 3H9v4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
           </button>
         </div>
       )}
@@ -124,13 +126,13 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
 
   if (!draft)
     return (
-      <section className="elev-1 rounded-[8px] bg-canvas p-4" aria-label="Email">
-        <h2 className="text-[13px] font-semibold">Email to the founder</h2>
+      <section className="elev-1 rounded-[20px] bg-canvas p-4" aria-label="Email">
+        <h2 className="font-display text-[24px] font-normal leading-tight">Letter to the founders</h2>
         <p className="mt-1 text-[13px] text-ink-muted">No draft yet. The suggested template follows the recommendation: <span className="font-medium text-ink">{TEMPLATE_LABEL[suggested]}</span>.</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {(["invite", "dig", "pass"] as Template[]).map((t) => (
             <button key={t} type="button" disabled={pending} onClick={() => run(() => generateDraft(applicationId, t))}
-              className={cx("press h-8 rounded-[6px] px-3 text-[13px] font-medium", t === suggested ? "bg-primary text-on-primary hover:bg-primary-hover" : "text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1")}>
+              className={cx("press h-8 rounded-full px-3 text-[13px] font-medium", t === suggested ? "bg-primary text-on-primary hover:bg-primary-hover" : "text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1")}>
               {pending ? "Drafting…" : `Draft ${TEMPLATE_LABEL[t].toLowerCase()}`}
             </button>
           ))}
@@ -141,10 +143,10 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
 
   const compareTo = draft.versions.find((v) => v.id === compare);
   return (
-    <section className="elev-1 rounded-[8px] bg-canvas" aria-label="Email composer">
+    <section className="elev-1 rounded-[20px] bg-canvas" aria-label="Email composer">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold">Email to the founder</h2>
+          <h2 className="font-display text-[24px] font-normal leading-tight">Letter to the founders</h2>
           <Badge>{TEMPLATE_LABEL[draft.template]}</Badge>
           {draft.status === "sent" && <Badge tone="green">Sent</Badge>}
         </div>
@@ -155,16 +157,16 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
         <label className="block">
           <span className="eyebrow">Subject</span>
           <input value={subject} onChange={(e) => onEdit(e.target.value, body)} disabled={draft.status === "sent"}
-            className="mt-1 h-9 w-full rounded-[6px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+            className="mt-1 h-9 w-full rounded-[10px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
         </label>
         <label className="block">
           <span className="eyebrow">Message</span>
           <textarea value={draft.status === "sent" && sentSlots.length === 2 ? body.split("{slot_1}").join(sentSlots[0]).split("{slot_2}").join(sentSlots[1]) : body} onChange={(e) => onEdit(subject, e.target.value)} disabled={draft.status === "sent"} rows={12}
-            className="mt-1 w-full resize-y rounded-[6px] bg-surface-1 px-3 py-2 text-[13px] leading-relaxed shadow-[0_0_0_1px_var(--hairline)]" />
+            className="mt-1 w-full resize-y rounded-[10px] bg-surface-1 px-3 py-2 text-[13px] leading-relaxed shadow-[0_0_0_1px_var(--hairline)]" />
         </label>
 
         {lint && (
-          <div className={cx("rounded-[6px] px-3 py-2 text-[12px]", lint.ok ? "bg-green-bg text-green" : "bg-amber-bg text-amber")} role="status">
+          <div className={cx("rounded-[10px] px-3 py-2 text-[12px]", lint.ok ? "bg-green-bg text-green" : "bg-amber-bg text-amber")} role="status">
             <p className="num font-medium">{lint.ok ? "Passes every check" : `${lint.issues.length} check${lint.issues.length > 1 ? "s" : ""} to fix before sending`} · {lint.words}/120 words · subject {lint.subjectWords}/7</p>
             {!lint.ok && <ul className="mt-1 list-disc pl-4">{lint.issues.map((i, n) => <li key={n}>{i.rule}: {i.detail}</li>)}</ul>}
           </div>
@@ -174,7 +176,7 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
           <span className="eyebrow mr-1">Redo</span>
           {CHIPS.map(([k, label]) => (
             <button key={k} type="button" disabled={pending || draft.status === "sent"} onClick={() => run(() => redoDraft(applicationId, draft.id, k))}
-              className="press hit h-8 rounded-[6px] px-2.5 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink disabled:opacity-50">
+              className="press hit h-8 rounded-full px-2.5 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 hover:text-ink disabled:opacity-50">
               {label}
             </button>
           ))}
@@ -182,8 +184,8 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
         <form className="flex gap-1.5" onSubmit={(e) => { e.preventDefault(); if (note.trim()) run(async () => { const r = await redoDraft(applicationId, draft.id, undefined, note); setNote(""); return r; }); }}>
           <label className="sr-only" htmlFor="redo-note">Redo with a note</label>
           <input id="redo-note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Redo with a note…" disabled={draft.status === "sent"}
-            className="h-9 flex-1 rounded-[6px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
-          <button type="submit" disabled={pending || !note.trim()} className="press h-9 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:opacity-50">
+            className="h-9 flex-1 rounded-[10px] bg-surface-1 px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+          <button type="submit" disabled={pending || !note.trim()} className="press h-9 rounded-full px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:opacity-50">
             {pending ? "Working…" : "Redo"}
           </button>
         </form>
@@ -199,7 +201,7 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
         {showHistory && (
           <ol className="space-y-2">
             {[...draft.versions].sort((a, b) => b.n - a.n).map((v) => (
-              <li key={v.id} className="rounded-[6px] bg-surface-1 p-2.5 text-[12px]">
+              <li key={v.id} className="rounded-[10px] bg-surface-1 p-2.5 text-[12px]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="num">v{v.n} · {ORIGIN[v.origin] ?? v.origin}{v.redo_chip ? ` (${CHIPS.find((c) => c[0] === v.redo_chip)?.[1]})` : ""}{v.redo_note ? `: “${v.redo_note}”` : ""} · {fmtDate(v.created_at)}{v.id === draft.current_version_id ? " · current" : ""}</span>
                   <span className="flex gap-2">

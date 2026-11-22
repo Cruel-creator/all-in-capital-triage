@@ -24,14 +24,14 @@ export default async function CorrectionsPage() {
   return (
     <div className="max-w-[960px]">
       <header className="mb-5">
-        <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Corrections</h1>
+        <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Corrections</h1>
         <p className="mt-0.5 text-[14px] text-ink-muted">When a partner or Riya overrides a score, the reason is remembered and shown to the scorer on similar companies.</p>
       </header>
       {rows.length === 0 ? (
-        <div className="elev-1 rounded-[8px] bg-canvas p-8 text-center">
+        <div className="elev-1 rounded-[20px] bg-canvas p-8 text-center">
           <p className="font-medium">No corrections yet</p>
           <p className="mt-1 text-[13px] text-ink-muted">Open an application and use Override on any criterion. A one-line reason is required, and it’s what teaches the scorer.</p>
-          <Link href="/" className="press mt-3 inline-flex h-8 items-center rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover">Go to the pipeline</Link>
+          <Link href="/" className="press mt-3 inline-flex h-8 items-center rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover">Go to the pipeline</Link>
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -39,7 +39,7 @@ export default async function CorrectionsPage() {
             const reused = [...new Map(uses.filter((u) => u.correction_id === r.id).map((u) => [u.application_id, u.applications?.company_name ?? "Unknown"])).values()];
             const up = Number(r.new_score) > Number(r.old_score);
             return (
-              <li key={r.id} className="elev-1 rounded-[8px] bg-canvas p-4">
+              <li key={r.id} className="elev-1 rounded-[20px] bg-canvas p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-[14px]">
                     <Link href={`/applications/${r.application_id}`} className="font-semibold hover:text-primary">{r.applications?.company_name ?? "Unknown"}</Link>

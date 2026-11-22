@@ -22,12 +22,13 @@ export default async function PipelinePage() {
 
   return (
     <div>
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-[20px] font-semibold tracking-[-0.3px]">Pipeline</h1>
-          <p className="mt-0.5 text-[14px] text-ink-muted">{headline(call, kushal, dig)}</p>
-        </div>
-        <p className="text-[12px] text-ink-subtle">{today} · Every line cites its source. Nothing moves without Kushal.</p>
+      <header className="mb-6 flex flex-col gap-3">
+        <span className="eyebrow-pill self-start">Today’s read · {today}</span>
+        <h1 className="max-w-[820px] font-display text-[40px] font-normal leading-[1.03] tracking-[-0.8px] md:text-[52px]">
+          <span className="sr-only">Pipeline: </span>
+          {(() => { const [a, b] = headline(call, kushal, dig).split("; "); return <>{a};{" "}<em className="text-primary">{b}</em></>; })()}
+        </h1>
+        <p className="text-[13px] text-ink-subtle">Every line cites its source. Nothing moves without Kushal.</p>
       </header>
       <PipelineBoard rows={rows} />
     </div>

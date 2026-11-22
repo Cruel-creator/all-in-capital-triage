@@ -73,7 +73,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
             aria-selected={n === i}
             onMouseEnter={() => setI(n)}
             onClick={() => go(r.href)}
-            className={cx("flex h-10 cursor-pointer items-center justify-between rounded-[6px] px-3 text-[13px]", n === i ? "bg-surface-2 text-ink" : "text-ink-muted")}
+            className={cx("flex h-10 cursor-pointer items-center justify-between rounded-[10px] px-3 text-[13px]", n === i ? "bg-surface-2 text-ink" : "text-ink-muted")}
           >
             <span>{r.label}</span>
             {r.hint && <span className="text-[12px] text-ink-subtle">{r.hint}</span>}

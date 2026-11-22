@@ -78,13 +78,13 @@ export function SourceProvider({ children }: { children: ReactNode }) {
               <p className="eyebrow">Source</p>
               <h2 id="source-title" className="text-[15px] font-semibold">{target?.label ?? "Source"}</h2>
             </div>
-            <button type="button" onClick={() => ref.current?.close()} className="press hit rounded-[6px] px-2 py-1 text-[13px] text-ink-subtle hover:bg-surface-2 hover:text-ink">
+            <button type="button" onClick={() => ref.current?.close()} className="press hit rounded-[10px] px-2 py-1 text-[13px] text-ink-subtle hover:bg-surface-2 hover:text-ink">
               Close <span className="sr-only">source</span>
             </button>
           </header>
           <div className="flex-1 overflow-y-auto px-4 py-4 text-[13px] leading-relaxed">
             {error && (
-              <div role="alert" className="rounded-[6px] bg-red-bg p-3 text-red">
+              <div role="alert" className="rounded-[10px] bg-red-bg p-3 text-red">
                 <p>{error}</p>
                 <button type="button" className="press mt-2 font-medium underline" onClick={() => { setError(null); setNonce((n) => n + 1); }}>
                   Try again
@@ -104,12 +104,12 @@ export function SourceProvider({ children }: { children: ReactNode }) {
                   <span className="font-mono text-[12px] text-ink-subtle">{data.key}</span>
                 </div>
                 <blockquote className="border-l-2 border-primary pl-3 text-ink">“{data.quote}”</blockquote>
-                <div className="rounded-[6px] bg-surface-1 p-3 text-ink-muted">
+                <div className="rounded-[10px] bg-surface-1 p-3 text-ink-muted">
                   <p className="eyebrow mb-2">Page {data.page_no} text, quote highlighted</p>
                   <Highlighted text={data.page_text} quote={data.quote} />
                 </div>
                 {data.pdf_url && (
-                  <a href={data.pdf_url} target="_blank" rel="noreferrer" className="press inline-flex h-8 items-center rounded-[6px] px-3 text-[13px] font-medium text-primary elev-1 hover:bg-surface-1">
+                  <a href={data.pdf_url} target="_blank" rel="noreferrer" className="press inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium text-primary elev-1 hover:bg-surface-1">
                     Open {data.file_name} at page {data.page_no}
                   </a>
                 )}
@@ -132,7 +132,7 @@ export function SourceProvider({ children }: { children: ReactNode }) {
                 {data.extracted_claim && <p className="text-ink-muted">{data.extracted_claim}</p>}
                 {!data.is_match && data.mismatch_reason && <p className="text-amber">Not used: {data.mismatch_reason}</p>}
                 {(data.cites || data.cited_by.length > 0) && (
-                  <div className="rounded-[6px] bg-surface-1 p-3">
+                  <div className="rounded-[10px] bg-surface-1 p-3">
                     <p className="eyebrow mb-2">Source chain</p>
                     <ol className="space-y-2">
                       {data.cited_by.map((c, i) => <li key={i}>Cited by <a className="text-primary underline" href={c.url} target="_blank" rel="noreferrer">{c.publisher ?? c.url}</a></li>)}
@@ -141,7 +141,7 @@ export function SourceProvider({ children }: { children: ReactNode }) {
                     </ol>
                   </div>
                 )}
-                <a href={data.url} target="_blank" rel="noreferrer" className="press inline-flex h-8 items-center rounded-[6px] px-3 text-[13px] font-medium text-primary elev-1 hover:bg-surface-1">
+                <a href={data.url} target="_blank" rel="noreferrer" className="press inline-flex h-8 items-center rounded-full px-3 text-[13px] font-medium text-primary elev-1 hover:bg-surface-1">
                   Open source page
                 </a>
               </div>

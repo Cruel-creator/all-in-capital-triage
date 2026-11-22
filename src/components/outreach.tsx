@@ -36,21 +36,21 @@ function PendingCard({ applicationId, t }: { applicationId: string; t: ThreadRow
       if ("error" in r && r.error) setError(r.error);
     });
   return (
-    <div className="mt-2 rounded-[6px] bg-surface-1 p-3 shadow-[0_0_0_1px_var(--hairline)]">
+    <div className="mt-2 rounded-[10px] bg-surface-1 p-3 shadow-[0_0_0_1px_var(--hairline)]">
       <p className="text-[12px] font-medium text-ink">Ready for your click: {ACTION_LABEL[t.pending_action!].toLowerCase()}</p>
       <p className="text-[12px] text-ink-muted">{p.reason}{p.slot ? ` ${ist(p.slot.start)}.` : ""}</p>
       <label className="mt-2 block">
         <span className="sr-only">Reply text</span>
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6}
-          className="w-full resize-y rounded-[6px] bg-canvas px-3 py-2 text-[13px] leading-relaxed shadow-[0_0_0_1px_var(--hairline)]" />
+          className="w-full resize-y rounded-[10px] bg-canvas px-3 py-2 text-[13px] leading-relaxed shadow-[0_0_0_1px_var(--hairline)]" />
       </label>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         <button type="button" disabled={pending} onClick={() => go(() => approvePendingAction(applicationId, t.id, body))}
-          className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
+          className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
           {pending ? "Working…" : ACTION_LABEL[t.pending_action!]}
         </button>
         <button type="button" disabled={pending} onClick={() => go(() => dismissPendingAction(applicationId, t.id))}
-          className="press h-8 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">
+          className="press h-8 rounded-full px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">
           Dismiss
         </button>
       </div>
@@ -71,11 +71,11 @@ export function OutreachPanel({ applicationId, threads, meetings, canAct }: {
       setMsg("error" in r && r.error ? r.error : "found" in r && r.found?.length ? `Found: ${r.found.join(", ")}.` : "Nothing new yet.");
     });
   return (
-    <section className="elev-1 rounded-[8px] bg-canvas p-4" aria-label="Outreach">
+    <section className="elev-1 rounded-[20px] bg-canvas p-4" aria-label="Outreach">
       <header className="flex items-center justify-between gap-2">
-        <h2 className="text-[13px] font-semibold">Outreach</h2>
+        <h2 className="font-display text-[24px] font-normal leading-tight">Outreach</h2>
         <button type="button" onClick={check} disabled={pending || !canAct} title={canAct ? undefined : "Sign in with Google first"}
-          className="press h-8 rounded-[6px] px-2.5 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:opacity-50">
+          className="press h-8 rounded-full px-2.5 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:opacity-50">
           {pending ? "Checking…" : "Check for replies"}
         </button>
       </header>
@@ -111,26 +111,27 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
-    <div className="rounded-[6px] bg-surface-1 p-3">
-      <p className="eyebrow mb-2">Partner decision</p>
+    // the decision "seal": an espresso panel (ivory in dark mode), the one place the page asks a partner to commit
+    <div className="rounded-[20px] bg-solid p-5 text-on-solid shadow-[0_24px_48px_-28px_rgb(30_26_21/0.8)]">
+      <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.2em] text-solid-muted">Partner decision</p>
       {decided && (
-        <p className="mb-2 text-[13px]">
-          <span className="font-medium capitalize">{decided.decision}</span>: {decided.note}{" "}
-          <span className="num text-ink-subtle">({decided.decided_by_email ?? "partner"}, {fmtDate(decided.created_at)})</span>
+        <p className="mb-3 text-[13px]">
+          <span className="font-display text-[20px] capitalize">{decided.decision}</span>: {decided.note}{" "}
+          <span className="num text-solid-muted">({decided.decided_by_email ?? "partner"}, {fmtDate(decided.created_at)})</span>
         </p>
       )}
-      <div className="flex gap-1.5" role="group" aria-label="Decision">
+      <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Decision">
         {["advance", "hold", "pass"].map((x) => (
           <button key={x} type="button" disabled={!canDecide || pending} aria-pressed={choice === x} onClick={() => setChoice(x)}
-            className={cx("press h-8 flex-1 rounded-[6px] text-[13px] capitalize shadow-[0_0_0_1px_var(--hairline)] disabled:cursor-not-allowed disabled:text-ink-subtle",
-              choice === x ? "bg-surface-3 font-medium text-ink shadow-[0_0_0_1px_var(--ink-subtle)]" : "bg-canvas text-ink-muted hover:text-ink")}>
+            className={cx("press h-11 rounded-full text-[13px] capitalize disabled:cursor-not-allowed disabled:opacity-60",
+              choice === x ? "bg-solid-muted font-semibold text-solid" : "bg-on-solid/10 text-on-solid hover:bg-on-solid/15")}>
             {x}
           </button>
         ))}
       </div>
-      {!canDecide && <p className="mt-1.5 text-[12px] text-ink-subtle">{signedIn ? "Only partners (PARTNER_EMAILS) can decide." : "Sign in with Google to decide."} Every decision needs a note.</p>}
+      {!canDecide && <p className="mt-2.5 text-[12px] text-solid-muted">{signedIn ? "Only partners (PARTNER_EMAILS) can decide." : "Sign in with Google to decide."} Every decision needs a note.</p>}
       {choice && (
-        <form className="mt-2 space-y-1.5" onSubmit={(e) => {
+        <form className="mt-3 space-y-2" onSubmit={(e) => {
           e.preventDefault();
           start(async () => {
             setError(null);
@@ -140,14 +141,14 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
           });
         }}>
           <label className="block">
-            <span className="sr-only">Why</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} required placeholder="Why? (required)"
-              className="w-full rounded-[6px] bg-canvas px-3 py-2 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+            <span className="mb-1 block text-[12px] text-solid-muted">Why (required)</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} required
+              className="w-full rounded-[14px] bg-canvas px-3.5 py-2.5 text-[13px] text-ink" />
           </label>
-          <button type="submit" disabled={pending || !note.trim()} className="press h-8 rounded-[6px] bg-canvas px-3 text-[13px] font-medium text-ink shadow-[0_0_0_1px_var(--ink-subtle)] hover:bg-surface-2 disabled:opacity-60">
+          <button type="submit" disabled={pending || !note.trim()} className="press h-10 rounded-full bg-canvas px-4 text-[13px] font-medium text-ink hover:bg-surface-2 disabled:opacity-60">
             {pending ? "Saving…" : `Record ${choice}`}
           </button>
-          {error && <p role="alert" className="text-[12px] text-red">{error}</p>}
+          {error && <p role="alert" className="rounded-[10px] bg-red-bg px-3 py-2 text-[12px] text-red">{error}</p>}
         </form>
       )}
     </div>

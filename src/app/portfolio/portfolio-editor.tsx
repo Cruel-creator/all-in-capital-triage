@@ -16,7 +16,7 @@ function Field({ label, value, onChange, wide, placeholder }: { label: string; v
     <label className={cx("block", wide && "sm:col-span-2")}>
       <span className="text-[12px] text-ink-muted">{label}</span>
       <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        className="mt-1 h-9 w-full rounded-[6px] bg-canvas px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
+        className="mt-1 h-9 w-full rounded-[10px] bg-canvas px-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" />
     </label>
   );
 }
@@ -27,7 +27,7 @@ function Form({ initial, onDone }: { initial: PortfolioInput; onDone: () => void
   const [pending, start] = useTransition();
   const set = (k: keyof PortfolioInput) => (x: string) => setV({ ...v, [k]: x });
   return (
-    <form className="grid gap-2.5 rounded-[8px] bg-surface-1 p-3 sm:grid-cols-2" onSubmit={(e) => {
+    <form className="grid gap-2.5 rounded-[16px] bg-surface-1 p-3 sm:grid-cols-2" onSubmit={(e) => {
       e.preventDefault();
       start(async () => {
         setError(null);
@@ -42,15 +42,15 @@ function Form({ initial, onDone }: { initial: PortfolioInput; onDone: () => void
       <Field label="Tags, comma-separated" value={v.tags} onChange={set("tags")} placeholder="e.g. first cheque, lending" />
       <label className="block">
         <span className="text-[12px] text-ink-muted">Status</span>
-        <select value={v.status} onChange={(e) => set("status")(e.target.value)} className="mt-1 h-9 w-full rounded-[6px] bg-canvas px-2 text-[13px] shadow-[0_0_0_1px_var(--hairline)]">
+        <select value={v.status} onChange={(e) => set("status")(e.target.value)} className="mt-1 h-9 w-full rounded-[10px] bg-canvas px-2 text-[13px] shadow-[0_0_0_1px_var(--hairline)]">
           {["active", "exited", "shut down"].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
       <Field label="Source link (required)" value={v.source_url} onChange={set("source_url")} placeholder="https://…" wide />
       <Field label="Source note" value={v.source_note} onChange={set("source_note")} wide />
       <div className="flex items-center gap-1.5 sm:col-span-2">
-        <button type="submit" disabled={pending} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">{pending ? "Saving…" : "Save"}</button>
-        <button type="button" onClick={onDone} className="press h-8 rounded-[6px] px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">Cancel</button>
+        <button type="submit" disabled={pending} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">{pending ? "Saving…" : "Save"}</button>
+        <button type="button" onClick={onDone} className="press h-8 rounded-full px-3 text-[13px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-canvas">Cancel</button>
         {error && <p role="alert" className="text-[12px] text-red">{error}</p>}
       </div>
     </form>
@@ -63,10 +63,10 @@ export function PortfolioEditor({ rows, canEdit }: { rows: PortfolioRow[]; canEd
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <p className="text-[12px] text-ink-subtle">{canEdit ? "Edits re-check new applicants against the updated text." : "Sign in with Google to edit."}</p>
-        <button type="button" disabled={!canEdit} onClick={() => setEditing("new")} className="press h-8 rounded-[6px] bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">Add company</button>
+        <button type="button" disabled={!canEdit} onClick={() => setEditing("new")} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">Add company</button>
       </div>
       {editing === "new" && <Form initial={toInput()} onDone={() => setEditing(null)} />}
-      <ul className="elev-1 divide-y divide-hairline rounded-[8px] bg-canvas">
+      <ul className="elev-1 divide-y divide-hairline rounded-[16px] bg-canvas">
         {rows.map((r) => (
           <li key={r.id} className="px-4 py-3">
             {editing === r.id ? (
@@ -82,7 +82,7 @@ export function PortfolioEditor({ rows, canEdit }: { rows: PortfolioRow[]; canEd
                     {r.source_note && <span className="text-ink-subtle">{r.source_note}</span>}
                   </p>
                 </div>
-                <button type="button" disabled={!canEdit} onClick={() => setEditing(r.id)} className="press h-7 rounded-[6px] px-2 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:cursor-not-allowed disabled:text-ink-subtle">Edit</button>
+                <button type="button" disabled={!canEdit} onClick={() => setEditing(r.id)} className="press h-7 rounded-full px-2 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:cursor-not-allowed disabled:text-ink-subtle">Edit</button>
               </div>
             )}
           </li>

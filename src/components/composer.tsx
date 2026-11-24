@@ -1,21 +1,17 @@
 "use client";
-// Email composer (build prompt §8): inline editing with autosave, Redo chips and note, version history with diff
-// and Restore, live lint. Sending is a separate explicit click and stays disabled until Gmail is connected.
+// Email composer (build prompt §8): inline editing with autosave, Redo chips and note, live lint. Sending is a
+// separate explicit click and stays disabled until Gmail is connected. Versions are still saved, just not listed.
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { generateDraft, previewSlots, redoDraft, restoreVersion, saveEdit, sendDraftAction } from "@/app/applications/[id]/actions";
+import { generateDraft, previewSlots, redoDraft, saveEdit, sendDraftAction } from "@/app/applications/[id]/actions";
 import { lintEmail, type Template } from "@/lib/email/lint";
-import { wordDiff } from "@/lib/email/diff";
 import type { Slot } from "@/lib/google/slots";
-import { Badge, cx, fmtDate } from "./ui";
+import { Badge, cx } from "./ui";
 
 export type ComposerVersion = { id: string; n: number; subject: string; body: string; origin: string; redo_chip: string | null; redo_note: string | null; created_at: string };
 export type ComposerDraft = { id: string; template: Template; status: string; current_version_id: string; versions: ComposerVersion[] } | null;
 
 const CHIPS: [string, string][] = [["shorter", "Shorter"], ["warmer", "Warmer"], ["direct", "More direct"], ["opening", "Different opening"], ["sharper", "Ask a sharper question"]];
 const TEMPLATE_LABEL: Record<string, string> = { invite: "Call invite", dig: "Dig", pass: "Pass", follow_up: "Follow-up" };
-const ORIGIN: Record<string, string> = { generated: "Drafted", redo: "Redo", riya_edit: "Edited", restore: "Restored" };
-
-const diff = wordDiff;
 
 /** To field, a confirmation that names the recipient and (for invites) the real calendar slots, then one click. */
 function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, saving }: {
@@ -28,7 +24,7 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
   const validTo = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(to.trim());
   const blocked = !gmail ? "Connect Gmail first (left sidebar)." : !signedIn ? "Sign in with Google first." : !lintOk ? "Fix the checks above first." : saving ? "Saving your edits…" : !validTo ? "Add the founder’s email address." : null;
 
-  if (draft.status === "sent") return <p className="text-[12px] text-ink-subtle">Sent from {gmail ?? "Gmail"}. Replies and follow-ups appear under Outreach.</p>;
+  if (draft.status === "sent") return <p className="rounded-[10px] bg-green-bg px-3 py-2 text-[12px] text-green">Already sent{gmail ? ` from ${gmail}` : ""}. Replies and follow-ups show under Outreach.</p>;
 
   const review = () =>
     start(async () => {
@@ -66,7 +62,9 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {blocked && <span className="text-[12px] text-ink-subtle">{blocked}</span>}
+          {blocked && (!gmail
+            ? <a href="/api/google/connect" className="text-[12px] font-medium text-primary underline">Connect Gmail to send</a>
+            : <span className="text-[12px] text-ink-subtle">{blocked}</span>)}
           <button type="button" onClick={review} disabled={!!blocked || pending} className="btn-pill press">
             {pending ? "Checking calendar…" : "Review and send"}
             <span className="arrow" aria-hidden>
@@ -89,8 +87,6 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
   const [saved, setSaved] = useState<"saved" | "saving" | "unsaved">("saved");
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
-  const [compare, setCompare] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -141,7 +137,6 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
       </section>
     );
 
-  const compareTo = draft.versions.find((v) => v.id === compare);
   return (
     <section className="elev-1 rounded-[20px] bg-canvas" aria-label="Email composer">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-hairline px-4 py-2.5">
@@ -191,37 +186,9 @@ export function Composer({ applicationId, draft, suggested, gmail, signedIn, fou
         </form>
         {error && <p role="alert" className="text-[12px] text-red">{error}</p>}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3">
-          <button type="button" onClick={() => setShowHistory((s) => !s)} aria-expanded={showHistory} className="press text-[12px] font-medium text-primary">
-            Version history ({draft.versions.length})
-          </button>
+        <div className="border-t border-hairline pt-3">
+          <SendBox applicationId={applicationId} draft={draft} founderEmail={founderEmail} gmail={gmail} signedIn={signedIn} lintOk={!!lint?.ok} saving={saved !== "saved"} />
         </div>
-        <SendBox applicationId={applicationId} draft={draft} founderEmail={founderEmail} gmail={gmail} signedIn={signedIn} lintOk={!!lint?.ok} saving={saved !== "saved"} />
-
-        {showHistory && (
-          <ol className="space-y-2">
-            {[...draft.versions].sort((a, b) => b.n - a.n).map((v) => (
-              <li key={v.id} className="rounded-[10px] bg-surface-1 p-2.5 text-[12px]">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="num">v{v.n} · {ORIGIN[v.origin] ?? v.origin}{v.redo_chip ? ` (${CHIPS.find((c) => c[0] === v.redo_chip)?.[1]})` : ""}{v.redo_note ? `: “${v.redo_note}”` : ""} · {fmtDate(v.created_at)}{v.id === draft.current_version_id ? " · current" : ""}</span>
-                  <span className="flex gap-2">
-                    <button type="button" onClick={() => setCompare(compare === v.id ? null : v.id)} className="press font-medium text-primary">{compare === v.id ? "Hide diff" : "Diff with current"}</button>
-                    {v.id !== draft.current_version_id && draft.status !== "sent" && (
-                      <button type="button" onClick={() => run(() => restoreVersion(applicationId, draft.id, v.id))} className="press font-medium text-primary">Restore</button>
-                    )}
-                  </span>
-                </div>
-                {compare === v.id && compareTo && (
-                  <p className="mt-2 whitespace-pre-wrap leading-relaxed" aria-label={`Changes from v${v.n} to the current text`}>
-                    {diff(`${compareTo.subject}\n\n${compareTo.body}`, `${subject}\n\n${body}`).map((d, n) =>
-                      d.k === "same" ? <span key={n}>{d.t}</span> : d.k === "add" ? <ins key={n} className="bg-green-bg text-green no-underline">{d.t}</ins> : <del key={n} className="bg-red-bg text-red">{d.t}</del>,
-                    )}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ol>
-        )}
       </div>
     </section>
   );

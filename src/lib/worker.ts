@@ -1,5 +1,5 @@
 // Queue processing shared by the long-running worker (scripts/worker.ts), the scheduled endpoint
-// (/api/cron/queue, called every few minutes in production) and the "Run now" button on Cost & ops.
+// (/api/cron/queue, called every few minutes in production).
 // - A failed run is retried with backoff (30s, 2m, 8m); after 3 attempts the application is needs_attention with the reason.
 // - If the daily cost limit pauses the queue, the run is put back untouched (fresh attempt count) to run after the pause.
 // - The sweeper fails orphaned "running" jobs and re-queues applications left processing or queued with no message.
@@ -63,12 +63,12 @@ export async function sweep(active: Set<string> = new Set(), log: (s: string) =>
   return { orphans: orphans.length, requeued: stuck.length };
 }
 
-/** One email per pause, only if an alert address is configured (Cost & ops page). */
+/** One email per pause, only if an alert address is configured in cost_limits. */
 export async function alertIfPaused(lim: { paused_at: string | null; pause_reason: string | null; alert_email: string | null; alerted_at: string | null }, log: (s: string) => void = () => {}) {
   if (!lim.paused_at || !lim.alert_email || (lim.alerted_at && lim.alerted_at >= lim.paused_at)) return;
   try {
     if (!(await mailbox())) return;
-    await sendMail({ to: lim.alert_email, subject: "Triage queue paused: daily cost limit", body: `The pipeline queue paused at ${lim.paused_at}.\n\n${lim.pause_reason ?? ""}\n\nResume it from the Cost & ops page once you have checked the spend.` });
+    await sendMail({ to: lim.alert_email, subject: "Triage queue paused: daily cost limit", body: `The pipeline queue paused at ${lim.paused_at}.\n\n${lim.pause_reason ?? ""}\n\nIt resumes on its own after midnight IST.` });
     await admin().from("cost_limits").update({ alerted_at: new Date().toISOString() }).eq("id", 1);
     log("alert sent");
   } catch (e) {

@@ -48,7 +48,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <MobileBar account={account} />
               {limits?.paused_at && (
                 <div role="alert" className="border-b border-hairline bg-amber-bg px-4 py-2 text-[13px] text-amber md:px-6">
-                  The queue is paused: today’s spend passed the daily limit. <a href="/ops" className="font-medium underline">Review on Cost &amp; ops</a>
+                  New applications are on hold for today and will continue after midnight.
                 </div>
               )}
               <main id="main" className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">

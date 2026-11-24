@@ -70,7 +70,7 @@ export default async function CalibrationPage() {
           <p className="eyebrow">Agreement with the fund</p>
           <p className="mt-1 flex items-baseline gap-2"><span className="num text-[32px] font-semibold tracking-[-0.6px]">{c.agree} of {c.total}</span><span className="num text-ink-subtle">{run.agreement_pct}%</span></p>
           {k && <p className="mt-3 text-[13px] text-ink-muted">Ranking: the backed company scored higher in <span className="num font-medium text-ink">{k.wins} of {k.pairs}</span> head-to-head pairs.</p>}
-          <p className="mt-3 text-[12px] text-ink-subtle">“Take the call” counts as a yes. In-sample: the fund’s rules were written from these memos, so this flatters the system. Run {fmtDate(run.created_at)}{run.cost_usd != null ? ` · $${Number(run.cost_usd).toFixed(2)}` : ""}.</p>
+          <p className="mt-3 text-[12px] text-ink-subtle">“Take the call” counts as a yes. In-sample: the fund’s rules were written from these memos, so this flatters the system. Run {fmtDate(run.created_at)}.</p>
         </div>
         <div className="elev-1 overflow-x-auto rounded-[16px] bg-canvas p-5">
           <p className="eyebrow mb-2">Who said what</p>

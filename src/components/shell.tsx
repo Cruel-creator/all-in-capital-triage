@@ -11,7 +11,6 @@ const NAV: { href: string; label: string; soon?: boolean }[] = [
   { href: "/calibration", label: "Calibration" },
   { href: "/corrections", label: "Corrections" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/ops", label: "Cost & ops" },
   { href: "/settings", label: "Settings" },
 ];
 
@@ -29,6 +28,7 @@ function AccountBox({ a }: { a: Account }) {
     <div className="px-2 text-[12px] text-ink-subtle">
       <p className="truncate" title={a.user}>Signed in as <span className="text-ink-muted">{a.user}</span></p>
       {a.gmail && a.gmail !== a.user && <p className="truncate" title={a.gmail}>Sending from {a.gmail}</p>}
+      {!a.gmail && <a href="/api/google/connect" className="press hit block font-medium text-primary">Connect Gmail to send emails</a>}
       <form method="post" action="/api/google/signout"><button type="submit" className="press hit font-medium text-primary">Sign out</button></form>
     </div>
   );

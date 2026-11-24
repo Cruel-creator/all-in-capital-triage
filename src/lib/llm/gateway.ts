@@ -70,11 +70,18 @@ export function istDayStart(now = new Date()): string {
   return new Date(`${istDate}T00:00:00+05:30`).toISOString();
 }
 
-/** Pauses the queue and refuses the call once today's IST spend passes the daily limit. */
+/** A pause set on an earlier IST day has expired: the limit is daily, so a new day starts fresh. Pure; tested. */
+export const pauseExpired = (pausedAt: string, now = new Date()) => new Date(pausedAt).getTime() < new Date(istDayStart(now)).getTime();
+
+/** Pauses the queue and refuses the call once today's IST spend passes the daily limit. Resumes on its own the next IST day. */
 export async function costGuard(estimateUsd = 0) {
   const db = admin();
   const { data: lim } = await db.from("cost_limits").select("*").eq("id", 1).single();
   if (!lim) return;
+  if (lim.paused_at && pauseExpired(lim.paused_at)) {
+    await db.from("cost_limits").update({ paused_at: null, pause_reason: null }).eq("id", 1);
+    lim.paused_at = null;
+  }
   if (lim.paused_at) throw new QueuePausedError(`Queue paused: ${lim.pause_reason ?? "daily cost limit"}`);
   const since = istDayStart();
   // summed in the database: reading rows caps at 1,000 and would undercount on a busy day

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadDetail, type ClaimLite, type Detail } from "@/lib/data/detail";
-import { ClaimChip } from "@/components/source-drawer";
 import { Composer, type ComposerDraft } from "@/components/composer";
 import { DecisionBar, OutreachPanel, type ThreadRow } from "@/components/outreach";
 import { currentUser } from "@/lib/google/session";
@@ -29,39 +28,9 @@ const STEP_LABEL: Record<string, string> = {
 };
 const CRITS = ["C1", "C2", "C3", "C4", "C5", "C6"] as const;
 
-function Chips({ keys, claims }: { keys: string[]; claims: ClaimLite[] }) {
-  const found = keys.map((k) => claims.find((c) => c.key === k)).filter((c): c is ClaimLite => !!c);
-  if (!found.length) return null;
-  return (
-    <div className="flex flex-wrap gap-1">
-      {found.map((c) => (
-        <ClaimChip key={c.key} kind={c.origin === "research" ? "finding" : "claim"} id={c.id} code={c.key} label={c.origin === "research" ? "web" : `${c.origin} p${c.page_no}`} />
-      ))}
-    </div>
-  );
-}
-
-/** Rationale with inline citations "[f12, d07]" rendered as chips. */
-function Cited({ text, claims }: { text: string; claims: ClaimLite[] }) {
-  // any [bracket] that holds a claim/finding ID becomes chips; non-ID tokens inside it are dropped
-  const parts = text.split(/(\[[^\]]*\b[a-z]\d{2}\b[^\]]*\])/gi);
-  return (
-    <p className="leading-relaxed text-ink-muted">
-      {parts.map((p, i) => {
-        const m = p.match(/^\[(.+)\]$/);
-        if (!m) return <span key={i}>{p}</span>;
-        return (
-          <span key={i} className="mx-0.5 inline-flex max-w-full translate-y-[-1px] flex-wrap gap-0.5 align-middle">
-            {m[1].split(/\s*,\s*/).filter((k) => /^[a-z]\d{2}$/i.test(k)).map((k) => {
-              const c = claims.find((x) => x.key === k);
-              return c ? <ClaimChip key={k} kind={c.origin === "research" ? "finding" : "claim"} id={c.id} code={k} /> : <span key={k} className="font-mono text-[12px] text-ink-subtle">{k}</span>;
-            })}
-          </span>
-        );
-      })}
-    </p>
-  );
-}
+// Source tags ([d03], f02 form p1…) stay in the data for audit but never show here: one plain line per point.
+// Whole first sentences only; the length cap is a safety net, set high enough that real sentences don't get cut.
+const plain = (t: string | null | undefined, max = 260) => firstSentence(t, max);
 
 function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"; decision: React.ReactNode }) {
   const s = d.scores.find((x) => x.view === view) ?? d.scores.find((x) => x.view === "revealed");
@@ -107,7 +76,7 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
               )}
             </div>
             {rec?.what_would_change && rec.action !== "take_call" && (
-              <p className="mt-4 text-[14px] leading-relaxed text-ink-muted"><span className="font-medium text-ink">What would change our mind:</span> {firstSentence(rec.what_would_change, 200)}</p>
+              <p className="mt-4 text-[14px] leading-relaxed text-ink-muted"><span className="font-medium text-ink">What would change our mind:</span> {plain(rec.what_would_change)}</p>
             )}
             {precedent?.company && <p className="mt-3 text-[13px] text-ink-subtle">Reminds us of <span className="font-display text-[17px] text-ink">{precedent.company}</span> ({precedent.outcome}).</p>}
           </div>
@@ -141,11 +110,8 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
                 return (
                   <li key={g.gate} className="rounded-[14px] bg-red-bg px-3.5 py-3">
                     <p className="flex items-center gap-1.5 text-[13px] font-medium text-red"><GateIcon /> {GATE_NAMES[g.gate]}: Kushal decides</p>
-                    {reasons.slice(0, 2).map((r, i) => (
-                      <div key={i} className="mt-1 space-y-1 text-[12px] text-ink">
-                        <p>{r.text}{r.portfolio && <> (<a className="text-primary underline" href={r.portfolio.source_url} target="_blank" rel="noreferrer">source</a>)</>}</p>
-                        <Chips keys={r.claim_keys ?? []} claims={d.claims} />
-                      </div>
+                    {reasons.slice(0, 1).map((r, i) => (
+                      <p key={i} className="mt-1 text-[12px] text-ink">{plain(r.text, 140)}{r.portfolio && <> (<a className="text-primary underline" href={r.portfolio.source_url} target="_blank" rel="noreferrer">source</a>)</>}</p>
                     ))}
                   </li>
                 );
@@ -159,44 +125,22 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   );
 }
 
-function CriterionCard({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail; canAct: boolean }) {
-  const memo = d.memos.find((m) => m.id === c.precedent_memo_id);
-  const applied = (c.applied_corrections ?? []) as AppliedCorrection[];
+/** One area in a line: name, rating, the reason in plain words, and the one question worth asking. */
+function AreaRow({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail; canAct: boolean }) {
   return (
-    <article data-reveal-scroll className="rounded-[20px] bg-canvas p-5 shadow-[inset_0_0_0_1px_var(--hairline)]" aria-labelledby={`crit-${c.criterion}`}>
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id={`crit-${c.criterion}`} className="font-display text-[24px] font-normal leading-tight">{CRIT_NAMES[c.criterion]}</h3>
-        <div className="flex items-center gap-2">
-          {c.status === "needs_attention" && <Badge tone="amber" title={c.status_reason ?? undefined}>Needs a look</Badge>}
-          <Badge tone={CONF[c.confidence].tone} title="How well this is backed: checked outside, deck and form agree, or the deck alone">{CONF[c.confidence].label}</Badge>
-          <Meter score={Number(c.score)} />
-        </div>
-      </header>
-      <div className="mt-2.5 space-y-2 text-[13px]">
-        <Cited text={c.rationale} claims={d.claims} />
-        {c.gap && <p className="text-[12px] text-amber">Couldn’t confirm: {c.gap}</p>}
-        {c.question_for_call && <p className="text-[12px] text-ink-muted"><span className="font-medium text-ink">We’d ask:</span> {c.question_for_call}</p>}
-        {memo && <p className="text-[12px] text-ink-subtle">Like {memo.company} ({memo.outcome}){c.precedent_note ? `: ${c.precedent_note}` : ""}</p>}
-        {c.is_override && (
-          <p className="rounded-[10px] bg-surface-1 px-2.5 py-1.5 text-[12px] text-ink-muted">
-            <span className="font-medium text-ink">Corrected by {personName(c.override_by_email)}:</span> {c.override_reason}
-          </p>
-        )}
-        {applied.length > 0 && (
-          <ul className="flex flex-wrap gap-1" aria-label="Past corrections the scorer was shown">
-            {applied.map((a) => (
-              <li key={a.id} className="rounded-[10px] bg-surface-1 px-2 py-1 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)]" title={`${a.criterion} moved ${a.from} → ${a.to}`}>
-                Applied correction from <span className="font-medium text-ink">{a.company}</span> ({a.by}): {a.reason}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <Chips keys={c.claim_keys as string[]} claims={d.claims} />
-          <OverrideButton applicationId={d.app.id} criterion={c.criterion} name={CRIT_NAMES[c.criterion]} current={Number(c.score)} canAct={canAct} />
-        </div>
+    <li className="grid gap-x-5 gap-y-1 px-5 py-4 md:grid-cols-[180px_1fr]">
+      <div className="flex items-center justify-between gap-2 md:block">
+        <h3 className="font-display text-[20px] font-normal leading-tight">{CRIT_NAMES[c.criterion]}</h3>
+        <div className="md:mt-1"><Meter score={Number(c.score)} /></div>
       </div>
-    </article>
+      <div className="min-w-0 space-y-1.5 text-[13px]">
+        <p className="text-ink">{plain(c.rationale)}</p>
+        {c.question_for_call && <p className="text-ink-muted"><span className="font-medium text-ink">Ask:</span> {plain(c.question_for_call)}</p>}
+        {c.is_override && <p className="text-[12px] text-ink-subtle">Changed by {personName(c.override_by_email)}: {plain(c.override_reason, 120)}</p>}
+        {c.status === "needs_attention" && <p className="text-[12px] text-amber">Needs a look before relying on this.</p>}
+        <div className="pt-0.5"><OverrideButton applicationId={d.app.id} criterion={c.criterion} name={CRIT_NAMES[c.criterion]} current={Number(c.score)} canAct={canAct} /></div>
+      </div>
+    </li>
   );
 }
 
@@ -208,60 +152,36 @@ function CouldntFind({ d }: { d: Detail }) {
   const matched = d.findings.filter((f) => f.is_match);
   const gaps = d.crits.filter((c) => c.gap);
   return (
-    <Panel bare title="What we couldn’t find">
+    <Panel bare title="What we couldn’t confirm">
       <p className="text-[13px] text-ink-muted">
         {notConfigured
-          ? `Web research hasn’t run: the search key isn’t set up yet. ${q.length} searches are planned below. Until it runs, nothing here was checked against outside sources.`
+          ? "Web research hasn’t run yet, so nothing here was checked outside the deck and form."
           : matched.length === 0
-            ? `Searched ${q.length} sources, nothing found about this company or its founders.`
-            : `Searched ${q.length} sources; ${matched.length} matched, ${empty.length} returned nothing.`}
+            ? "Nothing found online about this company or its founders."
+            : `${matched.length} outside source${matched.length > 1 ? "s" : ""} found; ${empty.length} search${empty.length === 1 ? "" : "es"} came back empty.`}
       </p>
       {gaps.length > 0 && (
-        <div className="mt-3">
-          <p className="eyebrow mb-1">What the absence costs</p>
-          <ul className="space-y-1 text-[12px] text-ink-muted">
-            {gaps.map((c) => (
-              <li key={c.criterion}><span className="font-mono text-ink">{c.criterion}</span> {c.gap} <span className="num text-ink-subtle">(scored {Number(c.score).toFixed(1)}, {CONF[c.confidence].label} confidence)</span></li>
-            ))}
-          </ul>
-        </div>
+        <ul className="mt-2.5 space-y-1.5 text-[13px]">
+          {gaps.map((c) => (
+            <li key={c.criterion}><span className="font-medium text-ink">{CRIT_NAMES[c.criterion]}:</span> <span className="text-ink-muted">{plain(c.gap)}</span></li>
+          ))}
+        </ul>
       )}
-      <details className="mt-3">
-        <summary className="cursor-pointer text-[12px] font-medium text-primary">Queries tried ({q.length})</summary>
-        <div className="mt-2 overflow-x-auto"><table className="w-full text-left text-[12px]">
-          <thead className="text-ink-subtle"><tr><th className="py-1 pr-2 font-medium">Looking for</th><th className="py-1 pr-2 font-medium">Query</th><th className="num py-1 text-right font-medium">Results</th></tr></thead>
-          <tbody>
-            {q.map((x) => (
-              <tr key={x.id} className="border-t border-hairline align-top">
-                <td className="py-1.5 pr-2 text-ink-subtle">{x.purpose.replace(/_/g, " ")}</td>
-                <td className="py-1.5 pr-2 font-mono text-[11px] text-ink-muted [overflow-wrap:anywhere]">{x.query}{x.error && <span className="mt-0.5 block font-sans text-amber">{x.error}</span>}</td>
-                <td className="num py-1.5 text-right">{x.result_count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      </details>
     </Panel>
   );
 }
 
 function Contradictions({ d }: { d: Detail }) {
+  // only what needs asking; agreeing numbers and notes aren't worth a founder's attention
   const flags = d.flags.filter((f) => f.severity !== "info");
-  const info = d.flags.filter((f) => f.severity === "info");
-  const keyOf = new Map(d.claims.map((c) => [c.id, c.key]));
   return (
-    <Panel bare title="Contradictions and checks" right={<span className="num text-[12px] text-ink-subtle">{flags.length} to ask about</span>}>
-      {flags.length === 0 && <p className="text-[13px] text-ink-subtle">The deck, the form and the arithmetic agree.</p>}
-      <ul className="space-y-3">
-        {[...flags, ...info].map((f) => (
+    <Panel bare title="Numbers that don’t add up">
+      {flags.length === 0 && <p className="text-[13px] text-ink-muted">The deck, the form and the arithmetic agree.</p>}
+      <ul className="space-y-2.5">
+        {flags.map((f) => (
           <li key={f.id} className="text-[13px]">
-            <div className="flex items-center gap-1.5">
-              <Badge tone={f.severity === "red" ? "red" : f.severity === "warn" ? "amber" : "neutral"}>{f.severity === "red" ? "Red" : f.severity === "warn" ? "Check" : "Note"}</Badge>
-              <span className="font-medium">{CHECK_LABEL[f.check as string] ?? String(f.check).replace(/_/g, " ")}</span>
-            </div>
-            <p className="mt-1 text-ink-muted">{f.explanation}</p>
-            <p className="num mt-0.5 font-mono text-[11px] text-ink-subtle">{f.formula}</p>
-            <div className="mt-1"><Chips keys={(f.claim_ids as string[]).map((u) => keyOf.get(u)).filter((k): k is string => !!k)} claims={d.claims} /></div>
+            <span className={cx("font-medium", f.severity === "red" ? "text-red" : "text-amber")}>{CHECK_LABEL[f.check as string] ?? String(f.check).replace(/_/g, " ")}:</span>{" "}
+            <span className="text-ink-muted">{plain(f.explanation)}</span>
           </li>
         ))}
       </ul>
@@ -270,37 +190,18 @@ function Contradictions({ d }: { d: Detail }) {
 }
 
 function Dossier({ d }: { d: Detail }) {
-  const creds = d.claims.filter((c) => c.metric === "text.credentials");
-  const found = d.findings.filter((f) => f.is_match && f.extracted_claim);
-  const sameName = d.findings.filter((f) => !f.is_match);
+  const found = d.findings.filter((f) => f.is_match && f.extracted_claim).slice(0, 4);
   return (
-    <Panel bare title="Founder dossier">
+    <Panel bare title="The founders">
       <ul className="space-y-1">
         {d.founders.map((f) => (
           <li key={f.id} className="text-[13px] font-medium">{f.full_name} <span className="font-normal text-ink-subtle">{f.role_title}</span></li>
         ))}
       </ul>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div>
-          <p className="eyebrow mb-1">Founders say (deck and form)</p>
-          {creds.length ? (
-            <ul className="space-y-1.5 text-[12px] text-ink-muted">
-              {creds.map((c) => (
-                <li key={c.id}>“{c.quote}” <ClaimChip kind="claim" id={c.id} code={c.key} label={`${c.origin} p${c.page_no}`} /></li>
-              ))}
-            </ul>
-          ) : <p className="text-[12px] text-ink-subtle">No credential lines extracted.</p>}
-        </div>
-        <div>
-          <p className="eyebrow mb-1">Research found</p>
-          {found.length ? (
-            <ul className="space-y-1.5 text-[12px] text-ink-muted">
-              {found.map((f) => <li key={f.id}>{f.extracted_claim} <ClaimChip kind="finding" id={f.id} code={f.key} label={f.publisher ?? "web"} /></li>)}
-            </ul>
-          ) : <p className="text-[12px] text-ink-subtle">Nothing found online to confirm or contradict these.</p>}
-          {sameName.length > 0 && <p className="mt-1.5 text-[12px] text-ink-subtle">{sameName.length} result(s) set aside: same name, different company or person.</p>}
-        </div>
-      </div>
+      <p className="mt-3 text-[12px] font-medium text-ink">Checked online</p>
+      {found.length ? (
+        <ul className="mt-1 space-y-1 text-[13px] text-ink-muted">{found.map((f) => <li key={f.id}>{plain(f.extracted_claim, 140)}</li>)}</ul>
+      ) : <p className="mt-1 text-[13px] text-ink-muted">Nothing found online to confirm or contradict what they say.</p>}
     </Panel>
   );
 }
@@ -354,8 +255,12 @@ export default async function ApplicationPage({ params, searchParams }: { params
       <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
         <section className="min-w-0 space-y-3" aria-labelledby="h-crit">
-          <h2 id="h-crit" className="font-display text-[28px] font-normal" data-reveal>How it reads, area by area</h2>
-          {crits.length ? crits.map((c) => <CriterionCard key={c.criterion} c={c} d={d} canAct={!!user} />) : (
+          <h2 id="h-crit" className="font-display text-[28px] font-normal" data-reveal>Area by area</h2>
+          {crits.length ? (
+            <div className="tray" data-reveal-scroll><ul className="tray-in divide-y divide-hairline">
+              {crits.map((c) => <AreaRow key={c.criterion} c={c} d={d} canAct={!!user} />)}
+            </ul></div>
+          ) : (
             <div className="elev-1 rounded-[20px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
           )}
         </section>
@@ -384,24 +289,10 @@ export default async function ApplicationPage({ params, searchParams }: { params
             <Tabs
               label="Evidence"
               items={[
-                { id: "checks", label: toAsk ? `Checks · ${toAsk} to ask` : "Checks", content: <Contradictions d={d} /> },
+                { id: "checks", label: toAsk ? `Numbers · ${toAsk}` : "Numbers", content: <Contradictions d={d} /> },
                 { id: "founders", label: "Founders", content: <Dossier d={d} /> },
-                { id: "gaps", label: "What we couldn’t find", content: <CouldntFind d={d} /> },
-                { id: "timeline", label: "Timeline", content: <Timeline d={d} /> },
-                {
-                  id: "run", label: "Run log", content: (
-                    <ul className="space-y-1 text-[12px] text-ink-muted">
-                      {d.jobs.map((j, i) => (
-                        <li key={i} className="flex items-center justify-between gap-2">
-                          <span className="capitalize">{STEP_LABEL[j.step as string] ?? String(j.step).replace(/_/g, " ")} · {j.status}{j.last_error ? `: ${j.last_error}` : ""}</span>
-                          {j.langfuse_trace_id && i === 0 && (
-                            <a className="text-primary underline" target="_blank" rel="noreferrer" href={`${process.env.LANGFUSE_HOST ?? "https://cloud.langfuse.com"}/trace/${j.langfuse_trace_id}`}>Langfuse trace</a>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ),
-                },
+                { id: "gaps", label: "Unconfirmed", content: <CouldntFind d={d} /> },
+                ...(d.timeline.length ? [{ id: "timeline", label: "Timeline", content: <Timeline d={d} /> }] : []),
               ]}
             />
           </div>

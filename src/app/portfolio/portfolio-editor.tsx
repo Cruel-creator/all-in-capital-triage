@@ -4,12 +4,28 @@ import { useState, useTransition } from "react";
 import { savePortfolio, type PortfolioInput } from "./actions";
 import { Badge, cx } from "@/components/ui";
 
-export type PortfolioRow = { id: string; company: string; one_liner: string; sector: string | null; status: string; tags: string[]; source_url: string; source_note: string | null; updated_at: string };
+export type PortfolioRow = { id: string; company: string; one_liner: string; sector: string | null; status: string; tags: string[]; source_url: string; source_note: string | null; website: string | null; updated_at: string };
 
 const toInput = (r?: PortfolioRow): PortfolioInput => ({
   id: r?.id, company: r?.company ?? "", one_liner: r?.one_liner ?? "", sector: r?.sector ?? "", status: r?.status ?? "active",
-  tags: (r?.tags ?? []).join(", "), source_url: r?.source_url ?? "", source_note: r?.source_note ?? "",
+  tags: (r?.tags ?? []).join(", "), source_url: r?.source_url ?? "", source_note: r?.source_note ?? "", website: r?.website ?? "",
 });
+
+/** The company's site icon, or its initials on a tinted tile when there's no website or no icon. */
+function Logo({ company, website }: { company: string; website: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const initials = company.replace(/^The\s+/i, "").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-white shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08)]">
+      {website && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- tiny same-origin icon; next/image adds nothing here
+        <img src={`/api/logo?d=${encodeURIComponent(website)}`} alt="" width={22} height={22} loading="lazy" onError={() => setFailed(true)} className="h-[22px] w-[22px] object-contain" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center bg-surface-2 font-display text-[15px] text-ink-muted">{initials}</span>
+      )}
+    </span>
+  );
+}
 
 function Field({ label, value, onChange, wide, placeholder }: { label: string; value: string; onChange: (v: string) => void; wide?: boolean; placeholder?: string }) {
   return (
@@ -46,6 +62,7 @@ function Form({ initial, onDone }: { initial: PortfolioInput; onDone: () => void
           {["active", "exited", "shut down"].map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
+      <Field label="Website (for the logo)" value={v.website} onChange={set("website")} placeholder="e.g. giva.co" />
       <Field label="Source link (required)" value={v.source_url} onChange={set("source_url")} placeholder="https://…" wide />
       <Field label="Source note" value={v.source_note} onChange={set("source_note")} wide />
       <div className="flex items-center gap-1.5 sm:col-span-2">
@@ -89,11 +106,14 @@ export function PortfolioEditor({ rows, canEdit }: { rows: PortfolioRow[]; canEd
             {editing === r.id ? (
               <div className="p-3"><Form initial={toInput(r)} onDone={() => setEditing(null)} /></div>
             ) : (
-              <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[200px_1fr_auto]">
-                <p className="min-w-0 truncate">
-                  <span className="font-display text-[19px] leading-tight">{r.company}</span>
-                  {r.status !== "active" && <span className="ml-2 align-middle"><Badge>{r.status}</Badge></span>}
-                </p>
+              <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[240px_1fr_auto]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Logo company={r.company} website={r.website} />
+                  <p className="min-w-0 truncate">
+                    <span className="font-display text-[19px] leading-tight">{r.company}</span>
+                    {r.status !== "active" && <span className="ml-2 align-middle"><Badge>{r.status}</Badge></span>}
+                  </p>
+                </div>
                 <div className="order-3 col-span-2 min-w-0 md:order-none md:col-span-1">
                   <p className="text-[13px] text-ink md:truncate" title={missing(r) ? undefined : r.one_liner}>
                     {missing(r) ? <span className="text-amber">No description yet, so new applicants can’t be checked against it.</span> : r.one_liner}

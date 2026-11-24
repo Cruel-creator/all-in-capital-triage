@@ -6,7 +6,7 @@ import { PortfolioEditor, type PortfolioRow } from "./portfolio-editor";
 export const dynamic = "force-dynamic";
 
 export default async function PortfolioPage() {
-  const rows = must(await admin().from("portfolio").select("id, company, one_liner, sector, status, tags, source_url, source_note, updated_at").order("company"), "portfolio") as PortfolioRow[];
+  const rows = must(await admin().from("portfolio").select("id, company, one_liner, sector, status, tags, source_url, source_note, website, updated_at").order("company"), "portfolio") as PortfolioRow[];
   const user = await currentUser();
   return (
     <div className="max-w-[1080px]">

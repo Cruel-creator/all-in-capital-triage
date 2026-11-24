@@ -62,9 +62,10 @@ export function lintEmail(e: { subject: string; body: string; template: Template
   // one clear next step
   const questions = (text.match(/\?/g) ?? []).length;
   if (e.template === "invite") {
-    // Riya's sent invites (B6 Loop 2 export): one sharp question about the number, then the scheduling question
-    if (!e.body.includes("{slot_1}") || !e.body.includes("{slot_2}")) issues.push({ rule: "slots", detail: "a call invite offers {slot_1} and {slot_2}" });
-    if (questions < 1 || questions > 2) issues.push({ rule: "one next step", detail: `one question about their number, then the slots question (found ${questions})` });
+    // one sharp question about the number, then ask the founder for a day and time (the app books what they reply)
+    const asksForTime = /\b(day and time|time that suits|time that works|when suits|when works|a time)\b[^?]*\?/i.test(e.body) || (e.body.includes("{slot_1}") && e.body.includes("{slot_2}"));
+    if (!asksForTime) issues.push({ rule: "ask for a time", detail: "a call invite asks the founder to reply with a day and time" });
+    if (questions < 1 || questions > 2) issues.push({ rule: "one next step", detail: `one question about their number, then the question asking for a time (found ${questions})` });
     if (words > INVITE_MAX_WORDS) issues.push({ rule: "length", detail: `${words} words; Riya's invites stay under ${INVITE_MAX_WORDS}` });
     const praise = subjectAndBody(e).match(PRAISE);
     if (praise) issues.push({ rule: "praise", detail: `"${praise[0]}": let the fact do the complimenting` });

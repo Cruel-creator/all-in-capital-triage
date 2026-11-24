@@ -9,7 +9,7 @@ const word = (n: number) => WORDS[n] ?? String(n);
 /** The day's read in one sentence, from the lanes only. */
 function headline(call: number, kushal: number, dig: number) {
   const first = call === 0 ? "Nothing strong enough for a call yet" : `${word(call)} worth a call`;
-  const rest = kushal ? `${word(kushal).toLowerCase()} need Kushal` : dig ? `${word(dig).toLowerCase()} to dig into` : "the rest are a no for now";
+  const rest = kushal ? `${word(kushal).toLowerCase()} to check first` : dig ? `${word(dig).toLowerCase()} to dig into` : "the rest are a no for now";
   return `${first}; ${rest}.`;
 }
 
@@ -28,7 +28,7 @@ export default async function PipelinePage() {
           <span className="sr-only">Pipeline: </span>
           {(() => { const [a, b] = headline(call, kushal, dig).split("; "); return <>{a};{" "}<em className="text-primary">{b}</em></>; })()}
         </h1>
-        <p className="text-[13px] text-ink-subtle">Every line cites its source. Nothing moves without Kushal.</p>
+        <p className="text-[13px] text-ink-subtle">You decide. Once you send the letter, the app books the meeting.</p>
       </header>
       <PipelineBoard rows={rows} />
     </div>

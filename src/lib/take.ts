@@ -43,7 +43,7 @@ export function takeFor(t: TakeInput): { verdict: string; line: string; stronges
   const weakest = entries.length > 1 ? entries[entries.length - 1][0] : null;
   let verdict: string = t.action ? VERDICT[t.action] : "Still being read.";
   if (t.bucket === "outside_mandate") verdict = "Outside what we invest in.";
-  else if (t.bucket === "flagged") verdict = `${verdict} Kushal should see it first.`;
+  else if (t.bucket === "flagged") verdict = `${verdict} Check the flagged rule first.`;
   const line =
     strongest && weakest && strongest !== weakest
       ? `Strongest on ${CRIT_SHORT[strongest]}; thinnest on ${CRIT_SHORT[weakest]}.`

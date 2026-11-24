@@ -5,6 +5,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { processBatch } from "@/lib/worker";
+import { autoSchedule } from "@/lib/google/outreach";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -19,8 +20,10 @@ function authorised(req: NextRequest) {
 async function handle(req: NextRequest) {
   if (!authorised(req)) return NextResponse.json({ error: "Not authorised." }, { status: 401 });
   try {
-    const r = await processBatch({ max: 1, budgetMs: 240_000 });
-    return NextResponse.json(r);
+    // scheduling first: it uses no model, so it keeps running even when the AI spend cap has paused the queue
+    const scheduling = await autoSchedule().catch((e) => ({ error: (e as Error).message }));
+    const r = await processBatch({ max: 1, budgetMs: 200_000 });
+    return NextResponse.json({ ...r, scheduling });
   } catch (e) {
     console.error("cron queue failed:", (e as Error).message);
     return NextResponse.json({ error: "Queue run failed." }, { status: 500 });

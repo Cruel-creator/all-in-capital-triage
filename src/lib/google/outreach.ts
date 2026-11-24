@@ -1,6 +1,8 @@
-// Sending, reply handling, follow-ups and booking. The rule from the build prompt holds everywhere here:
-// nothing goes out without a person's click. Sync only *prepares* a reply, follow-up or booking (pending_action);
-// approvePending sends it. Founder reply text is read by deterministic code, never sent to a model.
+// Sending, reply handling, follow-ups and booking. Riya decides and sends the first email with her own click.
+// After that, scheduling runs on its own (autoSchedule, every 5 minutes): the invite asks the founder for a day and
+// time; when they reply, the time is read by deterministic code (never sent to a model), checked against Riya's
+// calendar and working hours, and either booked (calendar invite with a Meet link, plus a short confirmation) or
+// answered with two free times. Replies that aren't about a time, and follow-ups, still wait for Riya.
 import { admin, must } from "../db/admin";
 import { lintEmail, type Template } from "../email/lint";
 import { diffText } from "../email/diff";
@@ -37,10 +39,10 @@ export async function sendDraft(o: { applicationId: string; draftId: string; to:
   const report = lintEmail({ subject: v.subject, body: v.body, template: d.template });
   if (!report.ok) throw new Error(`Fix the checks before sending: ${report.issues.map((i) => i.rule).join(", ")}.`);
 
-  // invites: fill the two slots, re-checked against the calendar right now
+  // invites ask the founder for a time; only older drafts that still carry {slot_1}/{slot_2} get slots filled in
   let offered: Slot[] = [];
   let body: string = v.body;
-  if (d.template === "invite") {
+  if (d.template === "invite" && v.body.includes("{slot_1}")) {
     const b = await busy(new Date().toISOString(), new Date(Date.now() + 16 * 864e5).toISOString());
     // client-supplied slots must still be real Tue/Thu afternoon candidates and free right now
     const legit = new Set(candidateSlots(new Date()).map((s) => s.start));
@@ -101,7 +103,9 @@ export async function sendDraft(o: { applicationId: string; draftId: string; to:
 const bodies = {
   follow_up: (c: ThreadContext, slots: Slot[]) =>
     c.template === "invite"
-      ? `Hi ${c.first_name},\n\nFollowing up on my note about a call. Would ${formatSlot(slots[0])} or ${formatSlot(slots[1])} work for 30 minutes?\n\n${c.signoff}`
+      ? slots.length === 2
+        ? `Hi ${c.first_name},\n\nFollowing up on my note about a call. Would ${formatSlot(slots[0])} or ${formatSlot(slots[1])} work for 30 minutes?\n\n${c.signoff}`
+        : `Hi ${c.first_name},\n\nFollowing up on my note about a call. Could you reply with a day and time that suits you for 30 minutes, any weekday between 10 am and 7 pm IST?\n\n${c.signoff}`
       : `Hi ${c.first_name},\n\nFollowing up on my earlier note. Could you reply in this thread when you have a moment?\n\n${c.signoff}`,
   counter: (c: ThreadContext, slots: Slot[], asked?: Slot) =>
     `Hi ${c.first_name},\n\nThanks for coming back. ${asked ? `${formatSlot(asked)} is taken on my side.` : "Those times are taken on my side."} Would ${formatSlot(slots[0])} or ${formatSlot(slots[1])} work instead?\n\n${c.signoff}`,
@@ -110,6 +114,15 @@ const bodies = {
 };
 
 const aditya = (c: ThreadContext) => (c.deeptech && process.env.DEEPTECH_PARTNER_EMAIL ? process.env.DEEPTECH_PARTNER_EMAIL : null);
+
+/** Riya's working hours for calls: a weekday, starting at 10:00 or later and ending by 19:00 IST. Pure; tested. */
+export function withinHours(s: Slot) {
+  const ist = (iso: string) => new Date(new Date(iso).getTime() + 5.5 * 3600e3);
+  const a = ist(s.start), b = ist(s.end);
+  const dow = a.getUTCDay();
+  const startMin = a.getUTCHours() * 60 + a.getUTCMinutes(), endMin = b.getUTCHours() * 60 + b.getUTCMinutes();
+  return dow >= 1 && dow <= 5 && a.getUTCDate() === b.getUTCDate() && startMin >= 10 * 60 && endMin <= 19 * 60;
+}
 
 /** Looks for founder replies and due follow-ups on one application's open threads. Prepares, never sends. */
 export async function syncApplication(applicationId: string, now = new Date()) {
@@ -141,9 +154,9 @@ export async function syncApplication(applicationId: string, now = new Date()) {
       } else {
         const b = await busy(now.toISOString(), new Date(now.getTime() + 30 * 864e5).toISOString());
         const wanted = read.kind === "accept" ? [read.slot] : read.slots;
-        const free = wanted.find((s) => isFree(s, b));
+        const free = wanted.find((s) => withinHours(s) && isFree(s, b));
         if (free) {
-          const p: Pending = { ...base, slot: free, body: bodies.book(c, free, !!aditya(c)), reason: read.kind === "accept" ? "Founder picked an offered slot; it is still free." : "Founder proposed a time that is free on your calendar." };
+          const p: Pending = { ...base, slot: free, body: bodies.book(c, free, !!aditya(c)), reason: read.kind === "accept" ? "Founder picked an offered slot; it is still free." : "Founder suggested a time that is free on your calendar." };
           Object.assign(patch, { state: "replied", pending_action: "book", pending_payload: p });
           results.push("booking ready");
         } else {
@@ -229,6 +242,37 @@ export async function approvePending(threadId: string, body: string, actor: stri
   if (upd.error) console.error("sent but thread not updated:", t.id, upd.error.message); // the email is out; never throw here
   await event(t.application_id, t.pending_action === "follow_up" ? "follow_up_sent" : "counter_proposal_sent", { thread_id: t.id, by: actor, offered });
   return { sent: true };
+}
+
+/**
+ * Runs every 5 minutes from the scheduled job. For every open call-invite thread: read new founder replies, and if
+ * they name a time, book it (free and within hours) or reply with two free times, without waiting for a click.
+ * Anything else (an unclear reply, a follow-up) stays prepared for Riya. Uses no model, so the AI spend cap doesn't stop it.
+ */
+export async function autoSchedule(now = new Date()) {
+  const db = admin();
+  if (!(await mailbox())) return { checked: 0, booked: 0, countered: 0, needsRiya: 0, skipped: "Gmail isn't connected" };
+  const open = must(await db.from("threads").select("application_id, context").in("state", ["sent", "followed_up", "counter_proposed"]), "open threads");
+  const apps = [...new Set(open.filter((t) => (t.context as ThreadContext)?.template === "invite").map((t) => t.application_id as string))];
+  let booked = 0, countered = 0, needsRiya = 0;
+  for (const appId of apps) {
+    try {
+      const r = await syncApplication(appId, now);
+      needsRiya += r.filter((x) => x === "reply needs Riya").length;
+      const ready = must(await db.from("threads").select("id, pending_action").eq("application_id", appId).in("pending_action", ["book", "counter_proposal"]), "ready threads");
+      for (const t of ready) {
+        try {
+          await approvePending(t.id, "", "auto-scheduler");
+          if (t.pending_action === "book") booked++; else countered++;
+        } catch (e) {
+          console.error("auto-schedule step failed:", t.id, (e as Error).message); // left prepared; the next run or Riya picks it up
+        }
+      }
+    } catch (e) {
+      console.error("auto-schedule sync failed:", appId, (e as Error).message);
+    }
+  }
+  return { checked: apps.length, booked, countered, needsRiya };
 }
 
 export async function dismissPending(threadId: string, actor: string) {

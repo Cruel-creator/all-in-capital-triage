@@ -12,7 +12,7 @@ import { Badge, GATE_NAMES, cx, sectorName } from "./ui";
 
 const LANES = [
   { key: "call", title: "Worth a call", hint: "Strong enough for 30 minutes" },
-  { key: "kushal", title: "Kushal should see", hint: "A gate tripped: his call" },
+  { key: "kushal", title: "Check first", hint: "A fund rule was tripped: look before deciding" },
   { key: "dig", title: "Dig first", hint: "One or two answers decide it" },
   { key: "pass", title: "Not now", hint: "Kind no, with what would change it" },
 ] as const;

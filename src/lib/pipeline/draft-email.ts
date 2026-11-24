@@ -24,7 +24,7 @@ const PROMPT_VERSION: Record<Template, number> = { invite: 2, dig: 1, pass: 1, f
 
 const TEMPLATE_RULES: Record<Template, (o: { deeptech: boolean; questions: string[]; change: string | null; integrity: boolean }) => string> = {
   invite: ({ deeptech }) =>
-    `CALL INVITE. The third sentence asks whether 30 minutes on {slot_1} or {slot_2} works, in the afternoon (keep those placeholders verbatim).` +
+    `CALL INVITE. The third sentence asks them to reply with a day and time that suits them for a 30-minute call (any weekday, 10 am to 7 pm IST). Do not offer specific slots: the app checks Riya's calendar against their reply and books it.` +
     `${deeptech ? ' Deeptech or hardware founder: add "Our partner Aditya will join us for the technical part."' : ""}`,
   dig: ({ questions, integrity }) =>
     `DIG. Ask 1 or 2 specific questions before we decide on a call, chosen from: ${questions.join(" | ") || "the weakest evidence in the claims"}. ` +

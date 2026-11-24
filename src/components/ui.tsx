@@ -26,7 +26,7 @@ export const ACTION: Record<string, { label: string; tone: Tone }> = {
   dig: { label: "Dig first", tone: "amber" },
   pass: { label: "Pass", tone: "neutral" },
 };
-export const BUCKET: Record<string, string> = { clear: "Clear", flagged: "Flagged · needs Kushal", outside_mandate: "Outside mandate" };
+export const BUCKET: Record<string, string> = { clear: "Clear", flagged: "Flagged · check first", outside_mandate: "Outside mandate" };
 export const FIT: Record<string, { label: string; tone: Tone }> = {
   in: { label: "In thesis", tone: "neutral" },
   stretch: { label: "Stretch", tone: "amber" },

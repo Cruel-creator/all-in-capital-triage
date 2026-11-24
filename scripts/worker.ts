@@ -5,11 +5,13 @@ import { config } from "dotenv";
 config({ path: ".env.local", quiet: true });
 import { retryIn, take, waiting } from "../src/lib/queue";
 import { VT, alertIfPaused, limits, runMessage, sweep } from "../src/lib/worker";
+import { autoSchedule } from "../src/lib/google/outreach";
 
 const once = process.argv.includes("--once");
 const inflight = new Map<number, string>();
 let stopping = false;
 let lastSweep = 0;
+let lastSchedule = 0;
 const log = (s: string) => console.log(new Date().toISOString().slice(11, 19), s);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -20,6 +22,11 @@ async function main() {
   while (!stopping) {
     try {
       if (Date.now() - lastSweep > 60_000) { lastSweep = Date.now(); await sweep(new Set(inflight.values()), log).catch((e) => log(`sweep failed: ${(e as Error).message}`)); }
+      if (!once && Date.now() - lastSchedule > 5 * 60_000) {
+        lastSchedule = Date.now();
+        const s = await autoSchedule().catch((e) => ({ error: (e as Error).message }));
+        if ("error" in s || s.booked || s.countered || s.needsRiya) log(`scheduling: ${JSON.stringify(s)}`);
+      }
       const lim = await limits();
       if (lim.paused_at) {
         await alertIfPaused(lim, log);

@@ -56,6 +56,12 @@ function dayOf(s: string, now: Date): { y: number; mo: number; day: number } | n
     const y = mo < n.mo || (mo === n.mo && day < n.day) ? n.y + 1 : n.y;
     return { y, mo, day };
   }
+  const rel = s.match(/\b(day after tomorrow|tomorrow|tmrw|today)\b/);
+  if (rel) {
+    const add = rel[1] === "today" ? 0 : rel[1] === "day after tomorrow" ? 2 : 1;
+    const d = new Date(Date.UTC(n.y, n.mo, n.day + add));
+    return { y: d.getUTCFullYear(), mo: d.getUTCMonth(), day: d.getUTCDate() };
+  }
   const w = s.match(WEEKDAY);
   if (!w) return null;
   const dow = DAYS.indexOf(w[1].slice(0, 3));

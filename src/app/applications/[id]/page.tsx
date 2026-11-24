@@ -11,7 +11,6 @@ import { Reveal } from "@/components/motion/reveal";
 import { Tabs } from "@/components/tabs";
 import { firstSentence, ratingWord, takeFor } from "@/lib/take";
 import { formatSlot } from "@/lib/google/slots";
-import { OverrideButton } from "@/components/override";
 import { personName, type AppliedCorrection } from "@/lib/corrections";
 import thesis from "../../../../config/thesis.v1.json";
 
@@ -109,7 +108,7 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
                 const reasons = (g.reasons ?? []) as { text: string; claim_keys?: string[]; portfolio?: { company: string; source_url: string } }[];
                 return (
                   <li key={g.gate} className="rounded-[14px] bg-red-bg px-3.5 py-3">
-                    <p className="flex items-center gap-1.5 text-[13px] font-medium text-red"><GateIcon /> {GATE_NAMES[g.gate]}: Kushal decides</p>
+                    <p className="flex items-center gap-1.5 text-[13px] font-medium text-red"><GateIcon /> {GATE_NAMES[g.gate]}: check before deciding</p>
                     {reasons.slice(0, 1).map((r, i) => (
                       <p key={i} className="mt-1 text-[12px] text-ink">{plain(r.text, 140)}{r.portfolio && <> (<a className="text-primary underline" href={r.portfolio.source_url} target="_blank" rel="noreferrer">source</a>)</>}</p>
                     ))}
@@ -126,7 +125,7 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
 }
 
 /** One area in a line: name, rating, the reason in plain words, and the one question worth asking. */
-function AreaRow({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail; canAct: boolean }) {
+function AreaRow({ c }: { c: Detail["crits"][number] }) {
   return (
     <li className="grid gap-x-5 gap-y-1 px-5 py-4 md:grid-cols-[180px_1fr]">
       <div className="flex items-center justify-between gap-2 md:block">
@@ -138,7 +137,6 @@ function AreaRow({ c, d, canAct }: { c: Detail["crits"][number]; d: Detail; canA
         {c.question_for_call && <p className="text-ink-muted"><span className="font-medium text-ink">Ask:</span> {plain(c.question_for_call)}</p>}
         {c.is_override && <p className="text-[12px] text-ink-subtle">Changed by {personName(c.override_by_email)}: {plain(c.override_reason, 120)}</p>}
         {c.status === "needs_attention" && <p className="text-[12px] text-amber">Needs a look before relying on this.</p>}
-        <div className="pt-0.5"><OverrideButton applicationId={d.app.id} criterion={c.criterion} name={CRIT_NAMES[c.criterion]} current={Number(c.score)} canAct={canAct} /></div>
       </div>
     </li>
   );
@@ -252,21 +250,13 @@ export default async function ApplicationPage({ params, searchParams }: { params
           <p>{d.app.status_reason}</p>
         </div>
       )}
-      <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user?.partner} signedIn={!!user} />} />
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <section className="min-w-0 space-y-3" aria-labelledby="h-crit">
-          <h2 id="h-crit" className="font-display text-[28px] font-normal" data-reveal>Area by area</h2>
-          {crits.length ? (
-            <div className="tray" data-reveal-scroll><ul className="tray-in divide-y divide-hairline">
-              {crits.map((c) => <AreaRow key={c.criterion} c={c} d={d} canAct={!!user} />)}
-            </ul></div>
-          ) : (
-            <div className="elev-1 rounded-[20px] p-6 text-center text-ink-subtle">Not scored yet. Scoring runs after research and gates.</div>
-          )}
-        </section>
-        <section className="min-w-0 space-y-3" aria-labelledby="h-next">
-          <h2 id="h-next" className="font-display text-[28px] font-normal" data-reveal>What happens next</h2>
-          <div data-reveal>
+      <Header d={d} view={view} decision={<DecisionBar applicationId={d.app.id} decided={d.decisions[0]} canDecide={!!user} signedIn={!!user} />} />
+
+      {/* the main job: send the letter; the app then gets a time from the founder and books it on Riya's calendar */}
+      <section aria-labelledby="h-next" className="space-y-3">
+        <h2 id="h-next" className="font-display text-[28px] font-normal" data-reveal>Email and meeting</h2>
+        <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
+          <div className="min-w-0" data-reveal>
             <Composer
               applicationId={d.app.id}
               draft={d.draft as ComposerDraft}
@@ -277,27 +267,52 @@ export default async function ApplicationPage({ params, searchParams }: { params
               sentSlots={((d.threads as ThreadRow[]).find((t) => t.context.offered?.length === 2)?.context.offered ?? []).map(formatSlot)}
             />
           </div>
-          <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
-          {asks.length > 0 && (
-            <div data-reveal-scroll>
-              <Panel title={rec?.action === "dig" ? "What we’d want to know first" : "What we’d cover on the call"}>
-                <ol className="list-decimal space-y-1.5 pl-4 text-[13px] text-ink-muted">{asks.map((q, i) => <li key={i}>{q}</li>)}</ol>
-              </Panel>
-            </div>
-          )}
-          <div data-reveal-scroll>
-            <Tabs
-              label="Evidence"
-              items={[
-                { id: "checks", label: toAsk ? `Numbers · ${toAsk}` : "Numbers", content: <Contradictions d={d} /> },
-                { id: "founders", label: "Founders", content: <Dossier d={d} /> },
-                { id: "gaps", label: "Unconfirmed", content: <CouldntFind d={d} /> },
-                ...(d.timeline.length ? [{ id: "timeline", label: "Timeline", content: <Timeline d={d} /> }] : []),
-              ]}
-            />
+          <div className="min-w-0 space-y-3">
+            <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
+            {!d.threads.length && (
+              <div className="rounded-[20px] bg-surface-1 p-4 text-[13px] text-ink-muted">
+                <p className="font-medium text-ink">How the meeting gets booked</p>
+                <ol className="mt-1.5 list-decimal space-y-1 pl-4">
+                  <li>You send the letter. It asks the founder for a day and time.</li>
+                  <li>When they reply, the app checks your calendar every few minutes.</li>
+                  <li>If you're free, it books the call with a Meet link and confirms. If not, it offers two free times.</li>
+                </ol>
+              </div>
+            )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      {/* the evidence stays one click away for when Riya wants it, but never in her way */}
+      <details className="group rounded-[20px] bg-canvas shadow-[inset_0_0_0_1px_var(--hairline)]">
+        <summary className="press flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+          <span className="font-display text-[22px] font-normal">More detail</span>
+          <span className="text-[12px] text-ink-subtle">Area by area, the numbers, the founders <span aria-hidden className="ml-1 inline-block transition-transform group-open:rotate-180">⌄</span></span>
+        </summary>
+        <div className="space-y-5 border-t border-hairline p-4 md:p-5">
+          {crits.length ? (
+            <ul className="divide-y divide-hairline rounded-[16px] shadow-[inset_0_0_0_1px_var(--hairline)]" aria-label="Area by area">
+              {crits.map((c) => <AreaRow key={c.criterion} c={c} />)}
+            </ul>
+          ) : (
+            <p className="text-center text-ink-subtle">Not scored yet. Scoring runs after research and checks.</p>
+          )}
+          {asks.length > 0 && (
+            <Panel title={rec?.action === "dig" ? "What we’d want to know first" : "What we’d cover on the call"}>
+              <ol className="list-decimal space-y-1.5 pl-4 text-[13px] text-ink-muted">{asks.map((q, i) => <li key={i}>{q}</li>)}</ol>
+            </Panel>
+          )}
+          <Tabs
+            label="Evidence"
+            items={[
+              { id: "checks", label: toAsk ? `Numbers · ${toAsk}` : "Numbers", content: <Contradictions d={d} /> },
+              { id: "founders", label: "Founders", content: <Dossier d={d} /> },
+              { id: "gaps", label: "Unconfirmed", content: <CouldntFind d={d} /> },
+              ...(d.timeline.length ? [{ id: "timeline", label: "Timeline", content: <Timeline d={d} /> }] : []),
+            ]}
+          />
+        </div>
+      </details>
     </Reveal>
   );
 }

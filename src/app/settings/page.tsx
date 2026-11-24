@@ -19,7 +19,7 @@ export default async function SettingsPage() {
     <div className="max-w-[1080px] space-y-6">
       <header>
         <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Settings</h1>
-        <p className="mt-1 text-[14px] text-ink-muted">How applications are scored and which rules send them to Kushal.</p>
+        <p className="mt-1 text-[14px] text-ink-muted">How applications are scored and which fund rules flag them for a closer look.</p>
       </header>
       <SettingsEditor rubricVersion={r.version} config={r.config} thesisVersion={t.version} rules={t.revealed.rules} canEdit={!!user?.partner} signedIn={!!user} />
     </div>

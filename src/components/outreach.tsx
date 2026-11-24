@@ -14,10 +14,10 @@ export type ThreadRow = {
 };
 
 const STATE: Record<string, { label: string; tone: "neutral" | "green" | "amber" | "primary" }> = {
-  sent: { label: "Waiting for reply", tone: "neutral" },
-  replied: { label: "Founder replied", tone: "primary" },
+  sent: { label: "Waiting for the founder's time", tone: "neutral" },
+  replied: { label: "Founder replied: needs you", tone: "primary" },
   followed_up: { label: "Followed up", tone: "neutral" },
-  counter_proposed: { label: "New times offered", tone: "neutral" },
+  counter_proposed: { label: "Two free times offered", tone: "neutral" },
   booked: { label: "Call booked", tone: "green" },
   closed: { label: "Closed", tone: "neutral" },
 };
@@ -76,10 +76,10 @@ export function OutreachPanel({ applicationId, threads, meetings, canAct }: {
         <h2 className="font-display text-[24px] font-normal leading-tight">Outreach</h2>
         <button type="button" onClick={check} disabled={pending || !canAct} title={canAct ? undefined : "Sign in with Google first"}
           className="press h-8 rounded-full px-2.5 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:opacity-50">
-          {pending ? "Checking…" : "Check for replies"}
+          {pending ? "Checking…" : "Check now"}
         </button>
       </header>
-      <p className="mt-1 text-[12px] text-ink-subtle" aria-live="polite">{msg ?? "Replies, follow-ups and bookings are prepared here and wait for your click."}</p>
+      <p className="mt-1 text-[12px] text-ink-subtle" aria-live="polite">{msg ?? "The app checks for the founder's reply every few minutes and books the call on your calendar. Anything it can't handle waits here for you."}</p>
       <ul className="mt-2 space-y-3">
         {threads.map((t) => (
           <li key={t.id} className="text-[13px]">
@@ -87,7 +87,7 @@ export function OutreachPanel({ applicationId, threads, meetings, canAct }: {
               <Badge tone={STATE[t.state]?.tone ?? "neutral"}>{STATE[t.state]?.label ?? t.state}</Badge>
               <span className="text-ink-muted">to {t.founder_email}</span>
             </div>
-            {t.state === "sent" && t.follow_up_due_at && !t.pending_action && <p className="num mt-1 text-[12px] text-ink-subtle">A follow-up is prepared if there’s no reply by {fmtDate(t.follow_up_due_at)}.</p>}
+            {t.state === "sent" && t.follow_up_due_at && !t.pending_action && <p className="num mt-1 text-[12px] text-ink-subtle">When they reply with a time, the call is booked automatically. A follow-up is prepared if there’s no reply by {fmtDate(t.follow_up_due_at)}.</p>}
             {t.context.offered?.length ? <p className="mt-1 text-[12px] text-ink-subtle">Offered: {t.context.offered.map((s) => ist(s.start)).join(" or ")}</p> : null}
             {t.state === "replied" && !t.pending_action && <p className="mt-1 text-[12px] text-amber">The reply needs you: open the thread in Gmail.</p>}
             {t.pending_action && t.pending_payload && canAct && <PendingCard applicationId={applicationId} t={t} />}
@@ -113,7 +113,7 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
   return (
     // the decision "seal": an espresso panel (ivory in dark mode), the one place the page asks a partner to commit
     <div className="rounded-[20px] bg-solid p-5 text-on-solid shadow-[0_24px_48px_-28px_rgb(30_26_21/0.8)]">
-      <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.2em] text-solid-muted">Partner decision</p>
+      <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.2em] text-solid-muted">Your decision</p>
       {decided && (
         <p className="mb-3 text-[13px]">
           <span className="font-display text-[20px] capitalize">{decided.decision}</span>: {decided.note}{" "}
@@ -129,7 +129,7 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
           </button>
         ))}
       </div>
-      {!canDecide && <p className="mt-2.5 text-[12px] text-solid-muted">{signedIn ? "Only partners (PARTNER_EMAILS) can decide." : "Sign in with Google to decide."} Every decision needs a note.</p>}
+      {!canDecide && <p className="mt-2.5 text-[12px] text-solid-muted">{signedIn ? "This account can't record decisions." : "Sign in with Google to decide."}</p>}
       {choice && (
         <form className="mt-3 space-y-2" onSubmit={(e) => {
           e.preventDefault();
@@ -141,11 +141,11 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
           });
         }}>
           <label className="block">
-            <span className="mb-1 block text-[12px] text-solid-muted">Why (required)</span>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} required
+            <span className="mb-1 block text-[12px] text-solid-muted">Note (optional)</span>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
               className="w-full rounded-[14px] bg-canvas px-3.5 py-2.5 text-[13px] text-ink" />
           </label>
-          <button type="submit" disabled={pending || !note.trim()} className="press h-10 rounded-full bg-canvas px-4 text-[13px] font-medium text-ink hover:bg-surface-2 disabled:opacity-60">
+          <button type="submit" disabled={pending} className="press h-10 rounded-full bg-canvas px-4 text-[13px] font-medium text-ink hover:bg-surface-2 disabled:opacity-60">
             {pending ? "Saving…" : `Record ${choice}`}
           </button>
           {error && <p role="alert" className="rounded-[10px] bg-red-bg px-3 py-2 text-[12px] text-red">{error}</p>}

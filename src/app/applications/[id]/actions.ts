@@ -157,14 +157,12 @@ export async function overrideScore(applicationId: string, criterion: string, ne
   }
 }
 
-// ---------- partner decision ----------
+// ---------- the decision (Riya decides; sign-in is already limited to the fund's allowlist) ----------
 
 export async function decide(applicationId: string, decision: string, note: string) {
   const user = await currentUser();
   if (!user) return { error: "Sign in with Google first." };
-  if (!user.partner) return { error: "Only partners can decide. Add your email to PARTNER_EMAILS." };
   if (!isId(applicationId) || !["advance", "hold", "pass"].includes(decision)) return { error: "Unknown decision." };
-  if (!note.trim()) return { error: "Add a note: every decision needs a reason." };
   const db = admin();
   must(await db.from("decisions").insert({ application_id: applicationId, decision, note: note.trim().slice(0, 2000), decided_by_email: user.email }), "decision");
   await db.from("timeline_events").insert({ application_id: applicationId, kind: "decided", payload: { decision, by: user.email } });

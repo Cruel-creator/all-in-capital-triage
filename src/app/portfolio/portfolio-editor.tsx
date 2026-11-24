@@ -57,37 +57,65 @@ function Form({ initial, onDone }: { initial: PortfolioInput; onDone: () => void
   );
 }
 
+// Raw tags read as code; show them as words. Unknown tags fall back to their text with underscores as spaces.
+const TAG: Record<string, string> = {
+  first_cheque: "First Cheque",
+  first_cheque_legacy: "First Cheque (legacy)",
+  aggregator_only: "Listed only",
+};
+const SECTOR: Record<string, string> = { "b2b saas": "B2B SaaS", fintech: "Fintech", deeptech: "Deeptech", "consumer brand": "Consumer brand", "consumer tech": "Consumer tech", other: "Other" };
+const sectorLabel = (s: string | null) => (s ? SECTOR[s] ?? s : "");
+const tagLabel = (t: string) => TAG[t] ?? t.replace(/_/g, " ");
+// A "needs_description" row holds a placeholder line; show it as a gap, not as a description.
+const missing = (r: PortfolioRow) => !r.one_liner || r.tags.includes("needs_description");
+
 export function PortfolioEditor({ rows, canEdit }: { rows: PortfolioRow[]; canEdit: boolean }) {
   const [editing, setEditing] = useState<string | null>(null); // row id, or "new"
+  const exited = rows.filter((r) => r.status !== "active").length;
+  const gaps = rows.filter(missing).length;
   return (
-    <div className="space-y-2.5">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px] text-ink-subtle">{canEdit ? "Edits re-check new applicants against the updated text." : "Sign in with Google to edit."}</p>
-        <button type="button" disabled={!canEdit} onClick={() => setEditing("new")} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">Add company</button>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[13px] text-ink-subtle">
+          {rows.length} companies{exited ? ` · ${exited} exited` : ""}{gaps ? <> · <span className="text-amber">{gaps} need a description</span></> : null}
+          {!canEdit && " · sign in to edit"}
+        </p>
+        <button type="button" disabled={!canEdit} onClick={() => setEditing("new")} className="press h-9 rounded-full bg-solid px-4 text-[13px] font-medium text-on-solid hover:opacity-90 disabled:cursor-not-allowed disabled:bg-surface-2 disabled:text-ink-subtle">Add company</button>
       </div>
       {editing === "new" && <Form initial={toInput()} onDone={() => setEditing(null)} />}
-      <ul className="elev-1 divide-y divide-hairline rounded-[16px] bg-canvas">
+      <div className="tray"><ul className="tray-in divide-y divide-hairline overflow-hidden">
         {rows.map((r) => (
-          <li key={r.id} className="px-4 py-3">
+          <li key={r.id}>
             {editing === r.id ? (
-              <Form initial={toInput(r)} onDone={() => setEditing(null)} />
+              <div className="p-3"><Form initial={toInput(r)} onDone={() => setEditing(null)} /></div>
             ) : (
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[14px]"><span className="font-semibold">{r.company}</span> {r.sector && <span className="text-ink-subtle">· {r.sector}</span>} {r.status !== "active" && <Badge>{r.status}</Badge>}</p>
-                  <p className="mt-0.5 text-[13px] text-ink-muted">{r.one_liner || <span className="text-amber">No description yet: the conflict check can’t compare against it.</span>}</p>
-                  <p className="mt-1 flex flex-wrap items-center gap-1 text-[12px]">
-                    {r.tags.map((t) => <Badge key={t}>{t}</Badge>)}
-                    <a href={r.source_url} target="_blank" rel="noreferrer" className="text-primary underline">Source</a>
-                    {r.source_note && <span className="text-ink-subtle">{r.source_note}</span>}
+              <div className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[200px_1fr_auto]">
+                <p className="min-w-0 truncate">
+                  <span className="font-display text-[19px] leading-tight">{r.company}</span>
+                  {r.status !== "active" && <span className="ml-2 align-middle"><Badge>{r.status}</Badge></span>}
+                </p>
+                <div className="order-3 col-span-2 min-w-0 md:order-none md:col-span-1">
+                  <p className="text-[13px] text-ink md:truncate" title={missing(r) ? undefined : r.one_liner}>
+                    {missing(r) ? <span className="text-amber">No description yet, so new applicants can’t be checked against it.</span> : r.one_liner}
+                  </p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-ink-subtle">
+                    {sectorLabel(r.sector)}
+                    {r.tags.filter((t) => t !== "needs_description").map((t) => <span key={t}>· {tagLabel(t)}</span>)}
                   </p>
                 </div>
-                <button type="button" disabled={!canEdit} onClick={() => setEditing(r.id)} className="press h-7 rounded-full px-2 text-[12px] text-ink-muted shadow-[0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:cursor-not-allowed disabled:text-ink-subtle">Edit</button>
+                <div className="flex items-center gap-1.5 md:justify-self-end">
+                  <a href={r.source_url} target="_blank" rel="noreferrer" title={r.source_note ?? undefined}
+                    className="press inline-flex h-8 items-center rounded-full px-3 text-[12px] font-medium text-primary hover:bg-surface-1">
+                    Source<span className="sr-only">{r.source_note ? `: ${r.source_note}` : ""} (opens in a new tab)</span>
+                  </a>
+                  <button type="button" disabled={!canEdit} onClick={() => setEditing(r.id)} aria-label={`Edit ${r.company}`}
+                    className="press inline-flex h-8 items-center rounded-full px-3 text-[12px] text-ink-muted shadow-[inset_0_0_0_1px_var(--hairline)] hover:bg-surface-1 disabled:cursor-not-allowed disabled:text-ink-subtle">Edit</button>
+                </div>
               </div>
             )}
           </li>
         ))}
-      </ul>
+      </ul></div>
     </div>
   );
 }

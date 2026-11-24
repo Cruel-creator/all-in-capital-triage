@@ -37,6 +37,12 @@ export function bodyParts(body: string) {
   return { hasGreeting, text, firstSentence, lines };
 }
 
+/** Riya's standard: "no praise unless it is backed by a specific fact". In invites, the fact does the complimenting. */
+export const PRAISE = /\b(impressive|incredible|amazing|exciting|love|loved|fantastic|great|brilliant|outstanding|remarkable|inspiring|stellar|exceptional|truly|really|congratulations|kudos)\b/i;
+/** Her invites run 42-61 words (B6 export); 80 leaves room for a partner line. */
+export const INVITE_MAX_WORDS = 80;
+const subjectAndBody = (e: { subject: string; body: string }) => `${e.subject}\n${e.body}`;
+
 export function lintEmail(e: { subject: string; body: string; template: Template; openingFact?: string | null }): LintReport {
   const issues: LintIssue[] = [];
   const words = countWords(e.body);
@@ -56,8 +62,12 @@ export function lintEmail(e: { subject: string; body: string; template: Template
   // one clear next step
   const questions = (text.match(/\?/g) ?? []).length;
   if (e.template === "invite") {
+    // Riya's sent invites (B6 Loop 2 export): one sharp question about the number, then the scheduling question
     if (!e.body.includes("{slot_1}") || !e.body.includes("{slot_2}")) issues.push({ rule: "slots", detail: "a call invite offers {slot_1} and {slot_2}" });
-    if (questions !== 1) issues.push({ rule: "one next step", detail: `a call invite ends with one question (found ${questions})` });
+    if (questions < 1 || questions > 2) issues.push({ rule: "one next step", detail: `one question about their number, then the slots question (found ${questions})` });
+    if (words > INVITE_MAX_WORDS) issues.push({ rule: "length", detail: `${words} words; Riya's invites stay under ${INVITE_MAX_WORDS}` });
+    const praise = subjectAndBody(e).match(PRAISE);
+    if (praise) issues.push({ rule: "praise", detail: `"${praise[0]}": let the fact do the complimenting` });
   }
   if (e.template === "dig" && (questions < 1 || questions > 2)) issues.push({ rule: "one next step", detail: `ask 1 or 2 specific questions (found ${questions})` });
   if ((e.template === "pass" || e.template === "follow_up") && questions > 1) issues.push({ rule: "one next step", detail: `at most one question (found ${questions})` });

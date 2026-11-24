@@ -17,10 +17,15 @@ export const REDO_CHIPS = {
 } as const;
 export type RedoChip = keyof typeof REDO_CHIPS;
 
+// Call invites use email_draft@v2: the shape of Riya's real sent invites (one fact, one question, the slots). On the
+// B6 sealed test it took Riya's "send as-is" rate from 35% (old drafts) to 90% with her past emails as examples
+// (70% without). Dig, pass and follow-up emails have a different shape and stay on v1. See docs/fine-tuning/.
+const PROMPT_VERSION: Record<Template, number> = { invite: 2, dig: 1, pass: 1, follow_up: 1 };
+
 const TEMPLATE_RULES: Record<Template, (o: { deeptech: boolean; questions: string[]; change: string | null; integrity: boolean }) => string> = {
-  invite: ({ deeptech, questions }) =>
-    `CALL INVITE. Propose a 30-minute call. Mention one or two things we'd want to cover, drawn from: ${questions.join(" | ") || "their numbers"}.` +
-    `${deeptech ? " Aditya, our partner who leads deeptech, will join: say so." : ""} End with exactly one question offering "{slot_1}" or "{slot_2}" (keep those placeholders verbatim).`,
+  invite: ({ deeptech }) =>
+    `CALL INVITE. The third sentence asks whether 30 minutes on {slot_1} or {slot_2} works, in the afternoon (keep those placeholders verbatim).` +
+    `${deeptech ? ' Deeptech or hardware founder: add "Our partner Aditya will join us for the technical part."' : ""}`,
   dig: ({ questions, integrity }) =>
     `DIG. Ask 1 or 2 specific questions before we decide on a call, chosen from: ${questions.join(" | ") || "the weakest evidence in the claims"}. ` +
     `${integrity ? "Where the deck and form disagree, ask them to share the underlying numbers; never suggest wrongdoing. " : ""}No call slots.`,
@@ -57,13 +62,15 @@ export async function draftEmail(o: {
   const deeptech = sector.includes("deeptech");
   const integrity = gates.some((g) => g.gate === "G4" && g.tripped);
   const examples = must(await db.from("style_examples").select("draft_text, sent_text").eq("template", template).order("created_at", { ascending: false }).limit(3), "style examples");
-  const p = await prompt("email_draft");
+  const p = await prompt("email_draft", PROMPT_VERSION[template]);
 
   const system = render(p.system, {
     template_rules: TEMPLATE_RULES[template]({ deeptech, questions: (rec?.dig_questions as string[]) ?? [], change: rec?.what_would_change ?? null, integrity }),
-    style_examples: examples.length
-      ? `Riya's own edits to past drafts (follow her preferences):\n${examples.map((e, i) => `Example ${i + 1}, draft:\n${e.draft_text}\nWhat Riya sent:\n${e.sent_text}`).join("\n\n")}`
-      : "",
+    style_examples: !examples.length
+      ? ""
+      : PROMPT_VERSION[template] === 2
+        ? `Emails Riya actually sent (match her shape and tone, not her facts):\n${examples.map((e, i) => `Example ${i + 1}:\n${e.sent_text}`).join("\n\n")}`
+        : `Riya's own edits to past drafts (follow her preferences):\n${examples.map((e, i) => `Example ${i + 1}, draft:\n${e.draft_text}\nWhat Riya sent:\n${e.sent_text}`).join("\n\n")}`,
   });
   const tripped = gates.filter((g) => g.tripped).map((g) => `${g.gate}: ${(g.reasons as { text: string }[]).map((r) => r.text).join("; ")}`);
   const redoText = o.redo

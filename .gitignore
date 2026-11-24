@@ -15,3 +15,6 @@ tsconfig.tsbuildinfo
 
 .vercel
 .env*
+
+# B6 exports from Drive: real founder details, never committed
+seed/b6/

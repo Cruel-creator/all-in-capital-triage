@@ -45,3 +45,5 @@ In production every page needs a team Google sign-in (`src/middleware.ts`).
 - `docs/PII-AUDIT.md`: where founder data goes
 - `docs/ACCESSIBILITY.md` and `docs/POLISH.md`: WCAG 2.1 AA audit and interface polish
 - `docs/screenshots/`: desktop and mobile, light and dark
+- `docs/RUNBOOK.md`: running it without an engineer (what to do when something looks wrong)
+- `docs/fine-tuning/`: the B6 fine-tuning case for Riya's first email (Brief, dataset, sealed-test results, payback)

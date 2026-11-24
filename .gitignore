@@ -18,3 +18,6 @@ tsconfig.tsbuildinfo
 
 # B6 exports from Drive: real founder details, never committed
 seed/b6/
+
+# private: the build prompt is never published
+docs/MASTER-PROMPT.md

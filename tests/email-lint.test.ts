@@ -12,7 +12,7 @@ Your 90-day repeat going from 31% in the June cohort to 38% in August is rare fo
 
 How much of that repeat comes from customers you first reached through paid social?
 
-Could you reply with a day and time that suits you for 30 minutes?
+Would 30 minutes on {slot_1} or {slot_2} work? If neither suits you, reply with a time that does.
 
 Riya
 All In Capital`,
@@ -48,7 +48,7 @@ test("first sentence must cite a specific number", () => {
 });
 
 test("one clear next step, slots for invites, signature, no accusations", () => {
-  assert.ok(lintEmail({ ...REFERENCE, body: REFERENCE.body.replace("Could you reply with a day and time that suits you for 30 minutes?", "Let me know.") }).issues.some((i) => i.rule === "ask for a time"));
+  assert.ok(lintEmail({ ...REFERENCE, body: REFERENCE.body.replace("{slot_2}", "Thursday") }).issues.some((i) => i.rule === "slots"));
   assert.ok(lintEmail({ ...REFERENCE, body: REFERENCE.body.replace("Riya\n", "Best\n") }).issues.some((i) => i.rule === "signature"));
   const pass = { subject: "EarnWise: our decision", template: "pass" as const, body: "Hi Rohit,\n\nYour deck says a team of 12 and the form says 5, and we suspect you lied about it.\n\nRiya\nAll In Capital" };
   assert.ok(lintEmail(pass).issues.some((i) => i.rule === "accusatory"));

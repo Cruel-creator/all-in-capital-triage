@@ -54,7 +54,7 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
       {confirm ? (
         <div className="rounded-[10px] bg-surface-1 p-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" role="group" aria-label="Confirm sending">
           <p>Send this {TEMPLATE_LABEL[draft.template].toLowerCase()} to <span className="font-medium">{to.trim()}</span> from <span className="font-medium">{gmail}</span> now?</p>
-          {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, both free on your calendar.</p>}
+          {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, both free on your calendar. Whichever they pick, or any other time they suggest that you're free for, the app books with a Meet link.</p>}
           {confirm.labels.length === 0 && draft.template === "invite" && <p className="mt-1 text-[12px] text-ink-muted">When they reply with a time, the app checks your calendar and books the call (or offers two free times if you're busy).</p>}
           <div className="mt-2 flex gap-1.5">
             <button type="button" onClick={send} disabled={pending} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">

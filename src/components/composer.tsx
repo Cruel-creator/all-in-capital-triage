@@ -4,11 +4,11 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { generateDraft, previewSlots, redoDraft, saveEdit, sendDraftAction } from "@/app/applications/[id]/actions";
 import { lintEmail, type Template } from "@/lib/email/lint";
-import type { Slot } from "@/lib/google/slots";
+import { formatSlot, type Slot } from "@/lib/google/slots";
 import { Badge, cx } from "./ui";
 
 export type ComposerVersion = { id: string; n: number; subject: string; body: string; origin: string; redo_chip: string | null; redo_note: string | null; created_at: string };
-export type ComposerDraft = { id: string; template: Template; status: string; current_version_id: string; versions: ComposerVersion[] } | null;
+export type ComposerDraft = { id: string; template: Template; status: string; current_version_id: string; offered_slots?: Slot[] | null; versions: ComposerVersion[] } | null;
 
 const CHIPS: [string, string][] = [["shorter", "Shorter"], ["warmer", "Warmer"], ["direct", "More direct"], ["opening", "Different opening"], ["sharper", "Ask a sharper question"]];
 const TEMPLATE_LABEL: Record<string, string> = { invite: "Call invite", dig: "Dig", pass: "Pass", follow_up: "Follow-up" };
@@ -30,8 +30,12 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
     start(async () => {
       setError(null);
       const current = draft.versions.find((v) => v.id === draft.current_version_id)?.body ?? "";
-      // new invites ask the founder for a time, so there are no slots to check before sending
-      if (draft.template !== "invite" || !current.includes("{slot_1}")) return setConfirm({ slots: [], labels: [] });
+      if (draft.template !== "invite") return setConfirm({ slots: [], labels: [] });
+      // the draft already shows Riya's two times: name them here; sending re-checks them against her calendar
+      if (!current.includes("{slot_1}")) {
+        const shown = (draft.offered_slots ?? []).map(formatSlot).filter((s) => current.includes(s));
+        return setConfirm({ slots: [], labels: shown.length === 2 ? shown : [] });
+      }
       const r = await previewSlots();
       if ("error" in r) setError(r.error);
       else setConfirm({ slots: r.slots, labels: r.labels });
@@ -54,7 +58,7 @@ function SendBox({ applicationId, draft, founderEmail, gmail, signedIn, lintOk, 
       {confirm ? (
         <div className="rounded-[10px] bg-surface-1 p-3 text-[13px] shadow-[0_0_0_1px_var(--hairline)]" role="group" aria-label="Confirm sending">
           <p>Send this {TEMPLATE_LABEL[draft.template].toLowerCase()} to <span className="font-medium">{to.trim()}</span> from <span className="font-medium">{gmail}</span> now?</p>
-          {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, both free on your calendar. Whichever they pick, or any other time they suggest that you're free for, the app books with a Meet link.</p>}
+          {confirm.labels.length > 0 && <p className="mt-1 text-[12px] text-ink-muted">It offers {confirm.labels[0]} or {confirm.labels[1]}, checked against your calendar again as it sends. Whichever they pick, or any other time they suggest that you're free for, the app books with a Meet link.</p>}
           {confirm.labels.length === 0 && draft.template === "invite" && <p className="mt-1 text-[12px] text-ink-muted">When they reply with a time, the app checks your calendar and books the call (or offers two free times if you're busy).</p>}
           <div className="mt-2 flex gap-1.5">
             <button type="button" onClick={send} disabled={pending} className="press h-8 rounded-full bg-primary px-3 text-[13px] font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">

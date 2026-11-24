@@ -7,6 +7,8 @@ import { render } from "../llm/prompts";
 import { lintEmail, lintFeedback, type LintReport, type Template } from "../email/lint";
 import { loadContext } from "./context";
 import { prompt } from "./gates";
+import { fillSlots, suggestSlots } from "../google/outreach";
+import type { Slot } from "../google/slots";
 
 export const REDO_CHIPS = {
   shorter: "Make it shorter: cut to the essentials, well under 100 words.",
@@ -119,13 +121,20 @@ export async function draftEmail(o: {
 
   const opening = out.opening_claim_id ? ctx.cites.get(out.opening_claim_id) : undefined;
   const subject = fillNames(out.subject, founders);
-  const body = fillNames(out.body, founders);
+  let body = fillNames(out.body, founders);
+  // invites show Riya's two real free times in the draft (Tue/Thu afternoons, from her calendar); send re-checks them
+  let offeredSlots: Slot[] | null = null;
+  if (template === "invite" && body.includes("{slot_1}")) {
+    offeredSlots = await suggestSlots();
+    if (offeredSlots.length === 2) body = fillSlots(body, offeredSlots);
+    else offeredSlots = null;
+  }
   const finalReport = lintEmail({ subject, body, template });
 
   let draftId = o.draftId;
   if (!draftId) {
     const d = must(
-      await db.from("email_drafts").insert({ application_id: o.applicationId, template, opening_claim_id: opening?.kind === "claim" ? opening.uuid : null }).select("id").single(),
+      await db.from("email_drafts").insert({ application_id: o.applicationId, template, opening_claim_id: opening?.kind === "claim" ? opening.uuid : null, offered_slots: offeredSlots }).select("id").single(),
       "email_drafts",
     );
     draftId = d.id as string;
@@ -142,7 +151,7 @@ export async function draftEmail(o: {
       .single(),
     "email_versions",
   );
-  must(await db.from("email_drafts").update({ current_version_id: v.id }).eq("id", draftId), "current version");
+  must(await db.from("email_drafts").update({ current_version_id: v.id, ...(offeredSlots ? { offered_slots: offeredSlots } : {}) }).eq("id", draftId), "current version");
   await db.from("timeline_events").insert({ application_id: o.applicationId, kind: o.redo ? "email_redo" : "email_drafted", payload: { template, draft_id: draftId, lint_ok: finalReport.ok } });
   return { draftId, versionId: v.id as string, report: finalReport };
 }

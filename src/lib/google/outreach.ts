@@ -28,21 +28,51 @@ export function fillSlots(body: string, slots: Slot[]) {
   return body.split("{slot_1}").join(formatSlot(slots[0])).split("{slot_2}").join(formatSlot(slots[1]));
 }
 
+/**
+ * Two slots to put in a draft (Tue/Thu afternoons IST, 30 minutes, per the partner meeting notes): free on Riya's
+ * calendar when it's connected; otherwise the next two candidates, which sending re-checks against the calendar.
+ */
+export async function suggestSlots(now = new Date()): Promise<Slot[]> {
+  try {
+    if (await mailbox()) return await offerSlots(now);
+  } catch {
+    // calendar unreachable: fall through to plain candidates; send re-checks them
+  }
+  return pickSlots(now, []);
+}
+
+/**
+ * At send time: the draft shows two concrete times. If both are still free, keep them; if one was taken meanwhile,
+ * swap in a fresh free slot. If Riya edited the times herself, send her text as written. Pure on its inputs; tested.
+ */
+export function refreshOfferedSlots(body: string, offered: Slot[] | null, busy: { start: string; end: string }[], now: Date): { body: string; offered: Slot[] } {
+  if (!offered || offered.length !== 2) return { body, offered: [] };
+  const shown = offered.map(formatSlot);
+  if (!shown.every((s) => body.includes(s))) return { body, offered: [] }; // Riya wrote her own times
+  if (offered.every((s) => isFree(s, busy) && new Date(s.start) > now)) return { body, offered };
+  const fresh = pickSlots(now, busy);
+  if (fresh.length < 2) throw new Error("No two free Tuesday or Thursday afternoon slots in the next two weeks.");
+  return { body: body.split(shown[0]).join(formatSlot(fresh[0])).split(shown[1]).join(formatSlot(fresh[1])), offered: fresh };
+}
+
 /** Sends the current version of a draft. Caller has checked the session. */
 export async function sendDraft(o: { applicationId: string; draftId: string; to: string; slots?: Slot[]; actor: string }) {
   if (!EMAIL.test(o.to)) throw new Error("That email address doesn't look right.");
   const db = admin();
-  const d = must(await db.from("email_drafts").select("id, application_id, template, status, current_version_id").eq("id", o.draftId).single(), "draft");
+  const d = must(await db.from("email_drafts").select("id, application_id, template, status, current_version_id, offered_slots").eq("id", o.draftId).single(), "draft");
   if (d.application_id !== o.applicationId) throw new Error("Draft doesn't belong to this application.");
   if (d.status === "sent") throw new Error("This email has already been sent.");
   const v = must(await db.from("email_versions").select("subject, body").eq("id", d.current_version_id).single(), "version");
   const report = lintEmail({ subject: v.subject, body: v.body, template: d.template });
   if (!report.ok) throw new Error(`Fix the checks before sending: ${report.issues.map((i) => i.rule).join(", ")}.`);
 
-  // invites ask the founder for a time; only older drafts that still carry {slot_1}/{slot_2} get slots filled in
+  // invites show two concrete times from the draft; re-check them now (older drafts may still carry placeholders)
   let offered: Slot[] = [];
   let body: string = v.body;
-  if (d.template === "invite" && v.body.includes("{slot_1}")) {
+  if (d.template === "invite" && !v.body.includes("{slot_1}") && d.offered_slots) {
+    const b = await busy(new Date().toISOString(), new Date(Date.now() + 16 * 864e5).toISOString());
+    ({ body, offered } = refreshOfferedSlots(v.body, d.offered_slots as Slot[], b, new Date()));
+  } else if (d.template === "invite" && v.body.includes("{slot_1}")) {
     const b = await busy(new Date().toISOString(), new Date(Date.now() + 16 * 864e5).toISOString());
     // client-supplied slots must still be real Tue/Thu afternoon candidates and free right now
     const legit = new Set(candidateSlots(new Date()).map((s) => s.start));

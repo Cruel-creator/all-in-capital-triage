@@ -25,7 +25,7 @@ export async function loadDetail(id: string) {
     db.from("decisions").select("decision, note, created_at, decided_by_email").eq("application_id", id).order("created_at", { ascending: false }),
     db.from("jobs").select("step, status, last_error, langfuse_trace_id, finished_at").eq("application_id", id).order("created_at", { ascending: false }).limit(8),
   ]);
-  const draftRow = (await db.from("email_drafts").select("id, template, status, current_version_id").eq("application_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data;
+  const draftRow = (await db.from("email_drafts").select("id, template, status, current_version_id, offered_slots").eq("application_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle()).data;
   const versions = draftRow
     ? must(await db.from("email_versions").select("id, n, subject, body, origin, redo_chip, redo_note, created_at").eq("draft_id", draftRow.id).order("n"), "versions")
     : [];

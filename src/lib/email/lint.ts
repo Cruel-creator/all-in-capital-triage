@@ -63,7 +63,10 @@ export function lintEmail(e: { subject: string; body: string; template: Template
   const questions = (text.match(/\?/g) ?? []).length;
   if (e.template === "invite") {
     // one sharp question about the number, then Riya's two free slots (filled from her calendar at send time)
-    if (!e.body.includes("{slot_1}") || !e.body.includes("{slot_2}")) issues.push({ rule: "slots", detail: "a call invite offers Riya's two free times as {slot_1} and {slot_2}" });
+    // either the placeholders (while drafting) or two real times already filled in from Riya's calendar
+    const placeholders = e.body.includes("{slot_1}") && e.body.includes("{slot_2}");
+    const realTimes = (e.body.match(/\b(?:Mon|Tues|Wednes|Thurs|Fri)day\b[^?\n]{0,40}?\d{1,2}(?::\d{2})?\s*(?:am|pm)/gi) ?? []).length >= 2;
+    if (!placeholders && !realTimes) issues.push({ rule: "slots", detail: "a call invite offers Riya's two free times" });
     if (questions < 1 || questions > 2) issues.push({ rule: "one next step", detail: `one question about their number, then the question offering the two times (found ${questions})` });
     if (words > INVITE_MAX_WORDS) issues.push({ rule: "length", detail: `${words} words; Riya's invites stay under ${INVITE_MAX_WORDS}` });
     const praise = subjectAndBody(e).match(PRAISE);

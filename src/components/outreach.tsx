@@ -64,7 +64,22 @@ export function OutreachPanel({ applicationId, threads, meetings, canAct }: {
 }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
-  if (!threads.length) return null;
+  if (!threads.length)
+    return (
+      <section className="elev-1 rounded-[20px] bg-canvas p-4" aria-label="Outreach">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-[24px] font-normal leading-tight">Outreach</h2>
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] text-ink-muted">Not sent yet</span>
+        </div>
+        <p className="mt-2 text-[13px] font-medium text-ink">How the meeting gets booked</p>
+        <ol className="mt-1 list-decimal space-y-1 pl-4 text-[13px] text-ink-muted">
+          <li>You send the letter. It offers two times you’re free and lets them suggest another.</li>
+          <li>The app reads their reply every 5 minutes.</li>
+          <li>It books the time they pick (or theirs, if you’re free) with a Google Meet link and confirms. If you’re busy, it offers two new free times.</li>
+        </ol>
+        <p className="mt-2 text-[12px] text-ink-subtle">Booked calls appear here, on the Meetings page and on your Google Calendar.</p>
+      </section>
+    );
   const check = () =>
     start(async () => {
       const r = await checkReplies(applicationId);
@@ -95,8 +110,8 @@ export function OutreachPanel({ applicationId, threads, meetings, canAct }: {
         ))}
       </ul>
       {meetings.length > 0 && (
-        <p className="mt-3 border-t border-hairline pt-2 text-[12px] text-green">
-          Call booked for {meetings.map((m) => `${ist(m.start_at)}${m.includes_aditya ? " (with Aditya)" : ""}`).join(", ")}.
+        <p className="mt-3 rounded-[10px] bg-green-bg px-3 py-2 text-[13px] font-medium text-green">
+          Call booked for {meetings.map((m) => `${ist(m.start_at)}${m.includes_aditya ? " (with Aditya)" : ""}`).join(", ")}. It’s on your Google Calendar with a Meet link.
         </p>
       )}
     </section>

@@ -238,7 +238,7 @@ export async function approvePending(threadId: string, body: string, actor: stri
         // remember the event first, so a retry never books it twice or trips over our own busy time
         p.event_id = ev.id;
         p.event_link = ev.htmlLink;
-        await db.from("meetings_booked").upsert({ application_id: t.application_id, thread_id: t.id, gcal_event_id: ev.id, start_at: slot.start, end_at: slot.end, includes_aditya: !!extra }, { onConflict: "gcal_event_id" });
+        await db.from("meetings_booked").upsert({ application_id: t.application_id, thread_id: t.id, gcal_event_id: ev.id, start_at: slot.start, end_at: slot.end, includes_aditya: !!extra, meet_link: (ev as { hangoutLink?: string }).hangoutLink ?? null, event_link: ev.htmlLink || null }, { onConflict: "gcal_event_id" });
       }
       await db.from("threads").update({ state: "booked", pending_payload: p }).eq("id", t.id);
     } catch (e) {

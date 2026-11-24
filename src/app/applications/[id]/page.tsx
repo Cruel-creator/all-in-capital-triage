@@ -284,16 +284,6 @@ export default async function ApplicationPage({ params, searchParams }: { params
           </div>
           <div className="min-w-0 space-y-3">
             <OutreachPanel applicationId={d.app.id} threads={d.threads as ThreadRow[]} meetings={d.meetings} canAct={!!user} />
-            {!d.threads.length && (
-              <div className="rounded-[20px] bg-surface-1 p-4 text-[13px] text-ink-muted">
-                <p className="font-medium text-ink">How the meeting gets booked</p>
-                <ol className="mt-1.5 list-decimal space-y-1 pl-4">
-                  <li>You send the letter. It offers two times you're free (from your calendar) and lets them suggest another.</li>
-                  <li>The app reads their reply every 5 minutes.</li>
-                  <li>It books the time they pick (or theirs, if you're free) with a Meet link and confirms. If you're busy then, it offers two new free times.</li>
-                </ol>
-              </div>
-            )}
           </div>
         </div>
       </section>

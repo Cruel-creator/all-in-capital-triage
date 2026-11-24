@@ -8,6 +8,7 @@ import { cx } from "./ui";
 
 const NAV: { href: string; label: string; soon?: boolean }[] = [
   { href: "/", label: "Pipeline" },
+  { href: "/meetings", label: "Meetings" },
   { href: "/calibration", label: "Calibration" },
   { href: "/corrections", label: "Corrections" },
   { href: "/portfolio", label: "Portfolio" },

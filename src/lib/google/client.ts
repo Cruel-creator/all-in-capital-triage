@@ -169,7 +169,7 @@ export async function busy(fromIso: string, toIso: string): Promise<Busy[]> {
 export async function bookEvent(e: { summary: string; start: string; end: string; attendees: string[]; description: string }) {
   const box = await mailbox();
   if (!box) throw new Error("Calendar isn't connected");
-  return g<{ id: string; htmlLink: string }>("https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1", box.token, {
+  return g<{ id: string; htmlLink: string; hangoutLink?: string }>("https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all&conferenceDataVersion=1", box.token, {
     method: "POST",
     body: JSON.stringify({
       summary: e.summary, description: e.description,

@@ -5,21 +5,23 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PipelineRow } from "@/lib/data/pipeline";
-import { ratingWord, takeFor } from "@/lib/take";
+import { callFor, callKind, ratingWord, takeFor } from "@/lib/take";
 import { PipelineTable } from "./pipeline-table";
 import { Reveal } from "./motion/reveal";
 import { Badge, GATE_NAMES, cx, sectorName } from "./ui";
 
+// Riya's three decisions (src/lib/take.ts callKind): a clear yes, her call in the gray area, a clear no
 const LANES = [
-  { key: "call", title: "Worth a call", hint: "Strong enough for 30 minutes" },
-  { key: "kushal", title: "Check first", hint: "A fund rule was tripped: look before deciding" },
-  { key: "dig", title: "Dig first", hint: "One or two answers decide it" },
-  { key: "pass", title: "Not now", hint: "Kind no, with what would change it" },
+  { key: "yes", title: "Yes", hint: "Meets the bar: give it 30 minutes" },
+  { key: "your_call", title: "Your call", hint: "Gray area: the AI shows which way it leans" },
+  { key: "no", title: "No", hint: "Clearly short of the bar: don't spend time on it" },
 ] as const;
 type Lane = (typeof LANES)[number]["key"];
 
-const laneOf = (r: PipelineRow): Lane | null =>
-  r.bucket === "flagged" || r.bucket === "outside_mandate" ? "kushal" : r.action === "take_call" ? "call" : r.action === "dig" ? "dig" : r.action === "pass" ? "pass" : null;
+const laneOf = (r: PipelineRow): Lane | null => {
+  const k = callKind({ action: r.action, bucket: r.bucket, total: r.total });
+  return k === "reading" ? null : k;
+};
 
 // colour only where it carries meaning: good, caution, bad. Middling stays neutral.
 const TONE = { green: "text-green", neutral: "text-ink-muted", amber: "text-amber", red: "text-red" } as const;
@@ -58,6 +60,10 @@ function Row({ r, refCb }: { r: PipelineRow; refCb: (el: HTMLAnchorElement | nul
         ) : (
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-ink">{t.line || t.verdict}</span>
+            {(() => {
+              const c = callFor({ ...r, total: r.total });
+              return c.lean ? <Badge tone={c.lean === "yes" ? "green" : "amber"}>Leans {c.lean}</Badge> : null;
+            })()}
             {r.gates.map((g) => <Badge key={g} tone="red">{GATE_NAMES[g]}</Badge>)}
             {r.source === "warm_intro" && <Badge>Warm intro</Badge>}
           </span>
@@ -118,7 +124,7 @@ export function PipelineBoard({ rows }: { rows: PipelineRow[] }) {
 
   return (
     <div>
-      <div role="group" aria-label="Filter by lane" className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div role="group" aria-label="Filter by lane" className="mb-4 grid grid-cols-3 gap-3">
         {LANES.map((l) => {
           const n = searched.filter((r) => laneOf(r) === l.key).length;
           const on = only === l.key;

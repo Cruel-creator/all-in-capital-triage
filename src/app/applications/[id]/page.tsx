@@ -9,7 +9,7 @@ import { ACTION, Badge, CONF, CRIT_NAMES, FIT, GATE_NAMES, GateIcon, Panel, cx, 
 import { Meter } from "@/components/pipeline-board";
 import { Reveal } from "@/components/motion/reveal";
 import { Tabs } from "@/components/tabs";
-import { firstSentence, ratingWord, takeFor } from "@/lib/take";
+import { CALL_LABEL, callFor, firstSentence, ratingWord, takeFor } from "@/lib/take";
 import { formatSlot } from "@/lib/google/slots";
 import { personName, type AppliedCorrection } from "@/lib/corrections";
 import thesis from "../../../../config/thesis.v1.json";
@@ -40,6 +40,11 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
   const strong = d.crits.find((c) => c.criterion === take.strongest);
   const weak = d.crits.find((c) => c.criterion === take.weakest);
   const precedent = (rec?.precedents as { company?: string; outcome?: string; note?: string }[] | undefined)?.[0];
+  const call = callFor({
+    action: rec?.action ?? null, bucket: rec?.bucket ?? null, gates: tripped.map((g) => g.gate), crit, total: s ? Number(s.total) : null,
+    askFirst: (rec?.dig_questions as string[] | undefined)?.[0] ?? null, wouldChange: rec?.what_would_change ?? null, gateNames: tripped.map((g) => GATE_NAMES[g.gate]),
+  });
+  const band = { yes: "bg-green-bg text-green", no: "bg-surface-2 text-ink-muted", your_call: "bg-amber-bg text-amber", reading: "bg-surface-2 text-ink-muted" }[call.kind];
   return (
     <section className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" aria-label="Our take">
       <div className="tray min-w-0">
@@ -58,8 +63,18 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
           <p className="mt-2 text-[15px] text-ink-muted" data-reveal>{d.app.one_liner}</p>
 
           <div className="mt-6 border-t border-hairline pt-5" data-reveal>
-            <span className="eyebrow-pill">Our take</span>
-            <p className="mt-3 font-display text-[30px] leading-[1.1] tracking-[-0.4px] md:text-[34px]">{take.verdict}</p>
+            <span className="eyebrow-pill">Give it time?</span>
+            <div className={cx("mt-3 rounded-[16px] px-5 py-4", band)}>
+              <p className="font-display text-[30px] leading-[1.1] tracking-[-0.4px] text-ink md:text-[34px]">{call.headline}</p>
+              {call.why && <p className="mt-1 text-[14px] text-ink-muted">{call.why}</p>}
+              {call.kind === "your_call" && (
+                <div className="mt-3 space-y-1.5 border-t border-current/15 pt-3 text-[14px] text-ink">
+                  <p><span className="font-semibold">The AI leans {call.lean}:</span> {call.leanWhy}</p>
+                  {call.toYes && <p className="text-ink-muted"><span className="font-medium text-ink">It's a yes if</span> {call.toYes}</p>}
+                  {call.toNo && <p className="text-ink-muted"><span className="font-medium text-ink">It's a no if</span> {call.toNo}</p>}
+                </div>
+              )}
+            </div>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {strong && (
                 <div className="rounded-[14px] bg-green-bg px-4 py-3.5">
@@ -74,7 +89,7 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
                 </div>
               )}
             </div>
-            {rec?.what_would_change && rec.action !== "take_call" && (
+            {rec?.what_would_change && call.kind === "no" && (
               <p className="mt-4 text-[14px] leading-relaxed text-ink-muted"><span className="font-medium text-ink">What would change our mind:</span> {plain(rec.what_would_change)}</p>
             )}
             {precedent?.company && <p className="mt-3 text-[13px] text-ink-subtle">Reminds us of <span className="font-display text-[17px] text-ink">{precedent.company}</span> ({precedent.outcome}).</p>}
@@ -86,7 +101,7 @@ function Header({ d, view, decision }: { d: Detail; view: "revealed" | "written"
         <div className="rounded-[20px] bg-canvas p-5 shadow-[inset_0_0_0_1px_var(--hairline)]">
           <div className="flex items-start justify-between gap-3">
             <p className="eyebrow">{view === "written" ? "Against our written thesis" : "Against how we actually invest"}</p>
-            {rec && <Badge tone={ACTION[rec.action].tone}>{ACTION[rec.action].label}</Badge>}
+            {rec && <Badge tone={call.kind === "yes" ? "green" : call.kind === "your_call" ? "amber" : "neutral"}>{CALL_LABEL[call.kind]}</Badge>}
           </div>
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="font-display text-[38px] leading-none">{ratingWord(s ? Number(s.total) : null).word}</span>

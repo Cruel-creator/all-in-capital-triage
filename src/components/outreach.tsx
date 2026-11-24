@@ -116,16 +116,16 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
       <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.2em] text-solid-muted">Your decision</p>
       {decided && (
         <p className="mb-3 text-[13px]">
-          <span className="font-display text-[20px] capitalize">{decided.decision}</span>: {decided.note}{" "}
+          <span className="font-display text-[20px]">{({ advance: "Yes", pass: "No", hold: "Hold" } as Record<string, string>)[decided.decision] ?? decided.decision}</span>{decided.note ? `: ${decided.note}` : ""}{" "}
           <span className="num text-solid-muted">({decided.decided_by_email ?? "partner"}, {fmtDate(decided.created_at)})</span>
         </p>
       )}
-      <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="Decision">
-        {["advance", "hold", "pass"].map((x) => (
+      <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Decision">
+        {([["advance", "Yes, give it time"], ["pass", "No"]] as const).map(([x, label]) => (
           <button key={x} type="button" disabled={!canDecide || pending} aria-pressed={choice === x} onClick={() => setChoice(x)}
-            className={cx("press h-11 rounded-full text-[13px] capitalize disabled:cursor-not-allowed disabled:opacity-60",
+            className={cx("press h-11 rounded-full text-[13px] disabled:cursor-not-allowed disabled:opacity-60",
               choice === x ? "bg-solid-muted font-semibold text-solid" : "bg-on-solid/10 text-on-solid hover:bg-on-solid/15")}>
-            {x}
+            {label}
           </button>
         ))}
       </div>
@@ -141,12 +141,12 @@ export function DecisionBar({ applicationId, decided, canDecide, signedIn }: {
           });
         }}>
           <label className="block">
-            <span className="mb-1 block text-[12px] text-solid-muted">Note (optional)</span>
+            <span className="mb-1 block text-[12px] text-solid-muted">Why? (optional, and it helps the AI learn your judgement)</span>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
               className="w-full rounded-[14px] bg-canvas px-3.5 py-2.5 text-[13px] text-ink" />
           </label>
           <button type="submit" disabled={pending} className="press h-10 rounded-full bg-canvas px-4 text-[13px] font-medium text-ink hover:bg-surface-2 disabled:opacity-60">
-            {pending ? "Saving…" : `Record ${choice}`}
+            {pending ? "Saving…" : choice === "advance" ? "Record: yes" : "Record: no"}
           </button>
           {error && <p role="alert" className="rounded-[10px] bg-red-bg px-3 py-2 text-[12px] text-red">{error}</p>}
         </form>

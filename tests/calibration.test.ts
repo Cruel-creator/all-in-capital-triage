@@ -1,6 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { confusion, memoFacts, predictionOf, redactPeople, sectorKey } from "../src/lib/calibration";
+import { checkArgument, confusion, memoFacts, plainArgument, predictionOf, redactPeople, sectorKey } from "../src/lib/calibration";
+
+test("plainArgument drops inline citations and tidies punctuation", () => {
+  assert.equal(plainArgument("Capital intensity will overwhelm the cheque [s08]. Founders are credible [s04, why]."), "Capital intensity will overwhelm the cheque. Founders are credible.");
+  assert.equal(plainArgument("No brackets here."), "No brackets here.");
+});
+
+test("checkArgument keeps disagreement notes short, plain and sourced", () => {
+  const known = new Set(["s01", "s02", "why"]);
+  const ok = { fund_was_wrong: "Neither founder has shipped a certified aircraft.", fund_sources: ["s01"], system_was_wrong: "The fund backed people who set clear technical milestones.", system_sources: ["why"] };
+  assert.equal(checkArgument(ok, known), null);
+  assert.match(checkArgument({ ...ok, fund_was_wrong: "Neither founder shipped an aircraft [s01]." }, known)!, /brackets/);
+  assert.match(checkArgument({ ...ok, system_was_wrong: "The system overlooked founder quality." }, known)!, /overlooked/);
+  assert.match(checkArgument({ ...ok, fund_was_wrong: "One sentence here. And another one." }, known)!, /one sentence/);
+  assert.match(checkArgument({ ...ok, fund_was_wrong: "word ".repeat(30).trim() + "." }, known)!, /at most 20 words/);
+  assert.match(checkArgument({ ...ok, fund_sources: [] }, known)!, /at least one/);
+  assert.match(checkArgument({ ...ok, system_sources: ["s99"] }, known)!, /s99/);
+});
 import { redactFounders } from "../src/lib/corrections";
 
 const CHUNKS = [

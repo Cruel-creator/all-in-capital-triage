@@ -85,15 +85,84 @@ export function sectorKey(sector: string): string {
 const Scored = z.object({
   criteria: z.array(z.object({ criterion: z.enum(["C1", "C2", "C3", "C4", "C5", "C6"]), score: z.number().min(0).max(10), rationale: z.string().min(10), gap: z.string().nullable().default(null) })).length(6),
 });
-const Argued = z.object({ fund_was_wrong: z.string().min(10), system_was_wrong: z.string().min(10) });
+const Argued = z.object({
+  fund_was_wrong: z.string().min(10), fund_sources: z.array(z.string()).default([]),
+  system_was_wrong: z.string().min(10), system_sources: z.array(z.string()).default([]),
+});
+export type Argument = { fund_was_wrong: string; system_was_wrong: string; fund_sources?: string[]; system_sources?: string[] };
 
 const cited = (t: string) => [...t.matchAll(/\[([^\]]+)\]/g)].flatMap((m) => m[1].split(/\s*,\s*/));
+
+const SLOP = /\b(overlook(ed|ing|s)?|penali[sz](ed|es|ing)?|headwinds?|robust|leverag(e|ed|ing)|unique(ly)?|critical|severe|extreme|demonstrat(e|es|ed|ing)|showcas(e|es|ed|ing)|navigat(e|es|ed|ing)|landscape|holistic)\b/i;
+const wordCount = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
+
+/** Checks one argued disagreement: short, plain, sources known and kept out of the sentence. Pure; tested. */
+export function checkArgument(x: Argument, known: Set<string>): string | null {
+  for (const [k, text, src] of [["fund_was_wrong", x.fund_was_wrong, x.fund_sources ?? []], ["system_was_wrong", x.system_was_wrong, x.system_sources ?? []]] as const) {
+    if (/[[\]—;]/.test(text)) return `${k}: no brackets, IDs, em dashes or semicolons in the sentence; put IDs in the sources list.`;
+    if (wordCount(text) > 24) return `${k}: one sentence of at most 20 words (it has ${wordCount(text)}).`;
+    if ((text.match(/[.!?](\s|$)/g) ?? []).length > 1) return `${k}: one sentence only.`;
+    const slop = text.match(SLOP)?.[0];
+    if (slop) return `${k}: say it plainly without "${slop}".`;
+    if (!src.length) return `${k}: list at least one fact ID it relies on in its sources.`;
+    const bad = src.filter((s) => !known.has(s.replace(/^\[|\]$/g, "")));
+    if (bad.length) return `${k}: cite only the fact IDs listed or "why" (not: ${bad.join(", ")}).`;
+  }
+  return null;
+}
+
+/** Older runs wrote citations inline ("…cheque [s08]."): drop them for display. Pure; tested. */
+export const plainArgument = (t: string) =>
+  t.replace(/\s*\[[^\]]*\]/g, "").replace(/\s+([.,!?])/g, "$1").replace(/\s{2,}/g, " ").trim();
 
 export type BacktestRow = {
   memo_no: number; company: string; sector: string; actual: "invested" | "passed"; action: "take_call" | "dig" | "pass"; predicted: Prediction;
   total: number; agree: boolean; criteria: { criterion: Criterion; score: number; rationale: string; gap: string | null }[];
-  facts: Fact[]; why: string; argument?: { fund_was_wrong: string; system_was_wrong: string };
+  facts: Fact[]; why: string; argument?: Argument;
 };
+
+type Tpl = Awaited<ReturnType<typeof prompt>>;
+const ARGUE_VERSION = 2;
+
+/** Argue one disagreement both ways (only after scoring, so the fund's reasoning never reaches the scorer). */
+async function argue(r: Pick<BacktestRow, "company" | "action" | "total" | "actual" | "criteria" | "facts" | "why">, tpl: Tpl): Promise<Argument> {
+  const { data } = await callModel({
+    step: "calibrate:argue",
+    prompt: {
+      name: tpl.name, version: tpl.version, versionId: tpl.versionId, system: tpl.system,
+      user: render(tpl.user, {
+        system_view: `${r.action === "take_call" ? "Take the call" : r.action === "dig" ? "Dig first" : "Pass"} (weighted ${r.total}/10)`,
+        fund_view: r.actual === "invested" ? "Invested" : "Passed",
+        scores: r.criteria.map((c) => `${c.criterion} ${c.score}: ${plainArgument(c.rationale)}`).join("\n"),
+        facts: r.facts.map((f) => `${f.id} ${f.text}`).join("\n"),
+        why: redactPeople([r.why])[0].split(r.company).join("the company"),
+      }),
+    },
+    schema: Argued,
+    validate: (x) => checkArgument(x, new Set([...r.facts.map((f) => f.id), "why"])),
+  });
+  return data;
+}
+
+/** Re-argue the latest run's disagreements with the current prompt, without re-scoring. About one call per disagreement. */
+export async function reargueLatest(log: (s: string) => void = () => {}) {
+  const db = admin();
+  const run = must(await db.from("calibration_runs").select("id, results, confusion").order("created_at", { ascending: false }).limit(1).single(), "latest run");
+  const memos = must(await db.from("memos").select("id, memo_no, company"), "memos");
+  const chunks = must(await db.from("memo_chunks").select("memo_id, section, text"), "memo chunks");
+  const tpl = await prompt("calibrate_argue", ARGUE_VERSION);
+  const rows = run.results as BacktestRow[];
+  for (const r of rows.filter((x) => !x.agree)) {
+    const m = memos.find((x) => x.memo_no === r.memo_no);
+    if (!m) continue;
+    const mine = chunks.filter((c) => c.memo_id === m.id);
+    r.argument = await argue({ ...r, facts: memoFacts(m.company, mine), why: whySection(m.company, mine) }, tpl);
+    log(`${r.company}: ${r.argument.fund_was_wrong} | ${r.argument.system_was_wrong}`);
+  }
+  const report = reportMd(rows, { ...(run.confusion as ReturnType<typeof confusion>), ranking: rankAgreement(rows) });
+  must(await db.from("calibration_runs").update({ results: rows, report_md: report }).eq("id", run.id).select("id"), "update run");
+  return { runId: run.id as string, report };
+}
 
 export async function runBacktest(log: (s: string) => void = () => {}) {
   const db = admin();
@@ -103,7 +172,7 @@ export async function runBacktest(log: (s: string) => void = () => {}) {
   const tv = must(await db.from("thesis_versions").select("revealed").eq("is_active", true).single(), "thesis");
   const rubric = rv.config;
   const scoreTpl = await prompt("calibrate_score", 1);
-  const argueTpl = await prompt("calibrate_argue", 1);
+  const argueTpl = await prompt("calibrate_argue", ARGUE_VERSION);
   const rules = (tv.revealed.rules as { id: string; text: string }[]).map((r) => `${r.id}: ${r.text}`).join("\n"); // evidence withheld
   const criteriaText = CRITERIA.map((c) => {
     const d = rubric.criteria[c];
@@ -149,28 +218,7 @@ export async function runBacktest(log: (s: string) => void = () => {}) {
   for (let i = 0; i < memos.length; i += 3) rows.push(...(await Promise.all(memos.slice(i, i + 3).map(one))));
 
   // only now may the fund's own reasoning be read: argue both sides of each disagreement
-  for (const r of rows.filter((x) => !x.agree)) {
-    const { data } = await callModel({
-      step: "calibrate:argue",
-      prompt: {
-        name: argueTpl.name, version: argueTpl.version, versionId: argueTpl.versionId, system: argueTpl.system,
-        user: render(argueTpl.user, {
-          system_view: `${r.action === "take_call" ? "Take the call" : r.action === "dig" ? "Dig first" : "Pass"} (weighted ${r.total}/10)`,
-          fund_view: r.actual === "invested" ? "Invested" : "Passed",
-          scores: r.criteria.map((c) => `${c.criterion} ${c.score}: ${c.rationale}`).join("\n"),
-          facts: r.facts.map((f) => `${f.id} ${f.text}`).join("\n"),
-          why: redactPeople([r.why])[0].split(r.company).join("the company"),
-        }),
-      },
-      schema: Argued,
-      validate: (x) => {
-        const ok = new Set([...r.facts.map((f) => f.id), "why"]);
-        const bad = [...cited(x.fund_was_wrong), ...cited(x.system_was_wrong)].filter((k) => !ok.has(k));
-        return bad.length ? `Cite only fact IDs like s03 or [why] (not: ${[...new Set(bad)].join(", ")}).` : null;
-      },
-    });
-    r.argument = data;
-  }
+  for (const r of rows.filter((x) => !x.agree)) r.argument = await argue(r, argueTpl);
 
   const c = { ...confusion(rows), ranking: rankAgreement(rows) };
   const report = reportMd(rows, c);
@@ -216,7 +264,7 @@ export function reportMd(rows: BacktestRow[], c: ReturnType<typeof confusion> & 
     "",
   ];
   for (const r of rows.filter((x) => x.argument)) {
-    lines.push(`### ${r.company}: fund ${r.actual}, system says ${ACTION_WORD[r.action]}`, "", `**The fund was wrong:** ${r.argument!.fund_was_wrong}`, "", `**The system was wrong:** ${r.argument!.system_was_wrong}`, "");
+    lines.push(`### ${r.company}: fund ${r.actual}, system says ${ACTION_WORD[r.action]}`, "", `**The fund was wrong:** ${plainArgument(r.argument!.fund_was_wrong)}`, "", `**The system was wrong:** ${plainArgument(r.argument!.system_was_wrong)}`, "");
   }
   return lines.join("\n");
 }

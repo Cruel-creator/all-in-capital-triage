@@ -4,7 +4,7 @@ import { admin } from "@/lib/db/admin";
 import { currentUser } from "@/lib/google/session";
 import { Badge, cx, fmtDate } from "@/components/ui";
 import { RerunButton } from "./rerun";
-import type { BacktestRow } from "@/lib/calibration";
+import { plainArgument, type BacktestRow } from "@/lib/calibration";
 
 export const dynamic = "force-dynamic";
 
@@ -107,14 +107,24 @@ export default async function CalibrationPage() {
 
       {disagreements.length > 0 && (
         <section aria-labelledby="h-dis" className="space-y-2.5">
-          <h2 id="h-dis" className="text-[14px] font-semibold">Each disagreement, argued both ways</h2>
+          <h2 id="h-dis" className="font-display text-[28px] font-normal leading-tight">Where we disagree</h2>
+          <p className="text-[13px] text-ink-subtle">The best case on each side, in a line.</p>
           {disagreements.map((r) => (
-            <article key={r.memo_no} className="elev-1 rounded-[20px] bg-canvas p-4">
-              <h3 className="text-[14px] font-semibold">{r.company} <span className="font-normal text-ink-subtle">· fund {r.actual}, system says {ACTION[r.action].toLowerCase()}</span></h3>
-              <div className="mt-2.5 grid gap-3 md:grid-cols-2">
-                <div className="rounded-[16px] bg-surface-1 p-3"><p className="eyebrow mb-1">The fund was wrong</p><p className="text-[13px] leading-relaxed text-ink-muted">{r.argument!.fund_was_wrong}</p></div>
-                <div className="rounded-[16px] bg-surface-1 p-3"><p className="eyebrow mb-1">The system was wrong</p><p className="text-[13px] leading-relaxed text-ink-muted">{r.argument!.system_was_wrong}</p></div>
-              </div>
+            <article key={r.memo_no} className="elev-1 rounded-[20px] bg-canvas px-5 py-4">
+              <h3 className="flex flex-wrap items-baseline gap-x-2 font-display text-[22px] font-normal leading-tight">
+                {r.company}
+                <span className="font-sans text-[12px] text-ink-subtle">Fund {r.actual} · system says {ACTION[r.action].toLowerCase()}</span>
+              </h3>
+              <dl className="mt-3 grid gap-2.5 md:grid-cols-2">
+                <div className="rounded-[14px] bg-amber-bg px-3.5 py-2.5">
+                  <dt className="text-[11px] font-medium text-amber">If the fund got it wrong</dt>
+                  <dd className="mt-0.5 text-[13px] leading-snug text-ink">{plainArgument(r.argument!.fund_was_wrong)}</dd>
+                </div>
+                <div className="rounded-[14px] bg-green-bg px-3.5 py-2.5">
+                  <dt className="text-[11px] font-medium text-green">If the system got it wrong</dt>
+                  <dd className="mt-0.5 text-[13px] leading-snug text-ink">{plainArgument(r.argument!.system_was_wrong)}</dd>
+                </div>
+              </dl>
             </article>
           ))}
         </section>

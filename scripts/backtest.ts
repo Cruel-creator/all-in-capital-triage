@@ -9,8 +9,8 @@ import { runBacktest } from "../src/lib/calibration";
 import { flush } from "../src/lib/llm/langfuse";
 
 async function main() {
-  for (const name of ["calibrate_score", "calibrate_argue"]) {
-    const t = loadPrompt(name, 1);
+  for (const [name, v] of [["calibrate_score", 1], ["calibrate_argue", 2]] as const) {
+    const t = loadPrompt(name, v);
     must(await admin().from("prompt_versions").upsert({ name: t.name, version: t.version, template: t.template, sha256: t.sha256 }, { onConflict: "name,version" }), `prompt ${name}`);
   }
   const r = await runBacktest(console.log);

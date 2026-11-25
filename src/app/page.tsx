@@ -28,7 +28,12 @@ export default async function PipelinePage() {
   return (
     <div>
       <header className="mb-6 flex flex-col gap-3">
-        <span className="eyebrow-pill self-start">Today’s read · {today}</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="eyebrow-pill">Today’s read · {today}</span>
+          <Link href="/applications/new" className="press inline-flex h-9 items-center rounded-full bg-primary px-4 text-[13px] font-medium text-on-primary hover:bg-primary-hover">
+            Add application
+          </Link>
+        </div>
         <h1 className="max-w-[820px] font-display text-[40px] font-normal leading-[1.03] tracking-[-0.8px] md:text-[52px]">
           <span className="sr-only">Pipeline: </span>
           {(() => { const [a, b] = headline(yes, yours, no).split("; "); return <>{a};{" "}<em className="text-primary">{b}</em></>; })()}

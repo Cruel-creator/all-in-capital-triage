@@ -4,7 +4,15 @@
 // Locally it is off: the app is only reachable from this machine.
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC = [/^\/api\/google\//, /^\/api\/cron\//, /^\/signin$/, /^\/_next\//, /^\/favicon/];
+// /apply is the founders' public application form (it checks its own limits; see src/lib/intake)
+const PUBLIC = [/^\/api\/google\//, /^\/api\/cron\//, /^\/signin$/, /^\/apply$/, /^\/_next\//, /^\/favicon/];
+
+/** Lets the root layout know the path, so public pages render without the team shell and pipeline data. */
+function pass(req: NextRequest) {
+  const headers = new Headers(req.headers);
+  headers.set("x-path", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
 const b64url = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 async function valid(token: string | undefined, secret: string | undefined): Promise<boolean> {
@@ -28,8 +36,8 @@ async function valid(token: string | undefined, secret: string | undefined): Pro
 export async function middleware(req: NextRequest) {
   const enforce = process.env.NODE_ENV === "production" || process.env.REQUIRE_SIGNIN === "1";
   const path = req.nextUrl.pathname;
-  if (!enforce || PUBLIC.some((r) => r.test(path))) return NextResponse.next();
-  if (await valid(req.cookies.get("session")?.value, process.env.SESSION_SECRET)) return NextResponse.next();
+  if (!enforce || PUBLIC.some((r) => r.test(path))) return pass(req);
+  if (await valid(req.cookies.get("session")?.value, process.env.SESSION_SECRET)) return pass(req);
   if (path.startsWith("/api/")) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const url = req.nextUrl.clone();
   url.pathname = "/signin";

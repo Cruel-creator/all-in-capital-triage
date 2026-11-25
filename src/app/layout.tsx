@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { MobileBar, Rail } from "@/components/shell";
@@ -18,7 +19,24 @@ const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["nor
 
 export const metadata: Metadata = { title: "All In Capital · Triage", description: "Inbound application triage for All In Capital" };
 
+// Pages anyone can open. They get no team shell, command palette or pipeline data.
+const BARE = new Set(["/apply", "/signin"]);
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const path = (await headers()).get("x-path") ?? "";
+  const enforce = process.env.NODE_ENV === "production" || process.env.REQUIRE_SIGNIN === "1";
+  if (BARE.has(path) || (enforce && !(await currentUser()))) {
+    return (
+      <html lang="en-IN" className={`${sans.variable} ${mono.variable} ${serif.variable}`} suppressHydrationWarning>
+        <head>
+          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        </head>
+        <body className="min-h-dvh text-ink">
+          <main id="main" className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">{children}</main>
+        </body>
+      </html>
+    );
+  }
   const [rows, user, gmail, limits] = await Promise.all([
     loadPipeline().catch(() => []), currentUser(), mailboxEmail().catch(() => null),
     admin().from("cost_limits").select("paused_at").eq("id", 1).maybeSingle().then((r) => r.data, () => null),
@@ -26,6 +44,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const account = { user: user?.email ?? null, gmail, configured: googleConfigured() };
   const items = [
     { label: "Pipeline", href: "/", hint: "screen" },
+    { label: "Add application", href: "/applications/new", hint: "upload a deck" },
     { label: "Calibration", href: "/calibration", hint: "screen" },
     { label: "Corrections", href: "/corrections", hint: "screen" },
     { label: "Portfolio", href: "/portfolio", hint: "screen" },

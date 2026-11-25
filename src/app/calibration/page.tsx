@@ -1,5 +1,6 @@
 // Calibration (build prompt §9.4): the 12 deal memos scored blind, compared with what the fund did.
 // Numbers live here and only here: agreement, the confusion matrix, and how well the ranking separates.
+import Link from "next/link";
 import { admin } from "@/lib/db/admin";
 import { currentUser } from "@/lib/google/session";
 import { Badge, cx, fmtDate } from "@/components/ui";
@@ -31,6 +32,7 @@ export default async function CalibrationPage() {
   if (!run)
     return (
       <div className="max-w-[720px]">
+        <Link href="/settings" className="press mb-2 inline-block text-[13px] text-ink-muted hover:text-ink">← Settings</Link>
         <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Calibration</h1>
         <div className="elev-1 mt-5 rounded-[16px] bg-canvas p-8 text-center">
           <p className="font-medium">No backtest yet</p>
@@ -50,6 +52,7 @@ export default async function CalibrationPage() {
     <div className="max-w-[1080px] space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
+          <Link href="/settings" className="press mb-2 inline-block text-[13px] text-ink-muted hover:text-ink">← Settings</Link>
           <h1 className="font-display text-[36px] font-normal leading-[1.05] tracking-[-0.6px]">Calibration</h1>
           <p className="mt-0.5 max-w-[680px] text-[14px] text-ink-muted">
             {separated
